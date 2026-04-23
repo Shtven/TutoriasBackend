@@ -3,6 +3,8 @@ package com.codespace.tutorias.Services;
 import com.codespace.tutorias.DTO.Mapping.UserMapping;
 import com.codespace.tutorias.DTO.Request.LoginRequest;
 import com.codespace.tutorias.DTO.Request.RegisterRequest;
+import com.codespace.tutorias.DTO.Responsive.JWT;
+import com.codespace.tutorias.JWT.JWTUtils;
 import com.codespace.tutorias.Models.User;
 import com.codespace.tutorias.Repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,8 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private UserMapping userMapping;
+    @Autowired
+    private JWTUtils jwtUtils;
 
 
     public void register(RegisterRequest register){
@@ -32,14 +36,14 @@ public class UserService {
         userRepository.save(userMapping.toEntity(register));
     }
 
-    public String login(LoginRequest login){
+    public JWT login(LoginRequest login){
         Optional<User> user = userRepository.findById(login.getMatricula());
 
         if(user.isPresent()){
             if(userMapping.matchesPassword(login.getPwd(), user.get().getPwd())){
-                return "JWT_TOKEN...";
+                userMapping.generateToken(user.get());
             }
         }
-        return "Usuario no encontrado o contraseña incorrecta";
+        return null;
     }
 }
