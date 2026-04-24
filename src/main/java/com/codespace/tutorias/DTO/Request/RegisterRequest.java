@@ -10,6 +10,8 @@ public class RegisterRequest {
     private String pwd;
     private int rol;
 
+    public RegisterRequest(){}
+
     public String getMatricula() {
         return matricula;
     }

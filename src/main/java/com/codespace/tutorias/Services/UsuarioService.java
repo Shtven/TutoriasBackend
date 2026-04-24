@@ -5,18 +5,18 @@ import com.codespace.tutorias.DTO.Request.LoginRequest;
 import com.codespace.tutorias.DTO.Request.RegisterRequest;
 import com.codespace.tutorias.DTO.Responsive.JWT;
 import com.codespace.tutorias.JWT.JWTUtils;
-import com.codespace.tutorias.Models.User;
-import com.codespace.tutorias.Repositories.UserRepository;
+import com.codespace.tutorias.Models.Usuario;
+import com.codespace.tutorias.Repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UsuarioService {
 
     @Autowired
-    private UserRepository userRepository;
+    private UsuarioRepository usuarioRepository;
     @Autowired
     private UserMapping userMapping;
     @Autowired
@@ -25,19 +25,19 @@ public class UserService {
 
     public void register(RegisterRequest register){
 
-        if(userRepository.findById(register.getMatricula()) != null){
+        if(usuarioRepository.findById(register.getMatricula()) != null){
             throw new RuntimeException("La matricula ya esta registrada");
         }
 
-        if(userRepository.findByCorreo(register.getCorreo()) != null){
+        if(usuarioRepository.findByCorreo(register.getCorreo()) != null){
             throw new RuntimeException("El correo ya esta registrado");
         }
 
-        userRepository.save(userMapping.toEntity(register));
+        usuarioRepository.save(userMapping.toEntity(register));
     }
 
     public JWT login(LoginRequest login){
-        Optional<User> user = userRepository.findById(login.getMatricula());
+        Optional<Usuario> user = usuarioRepository.findById(login.getMatricula());
 
         if(user.isPresent()){
             if(userMapping.matchesPassword(login.getPwd(), user.get().getPwd())){
@@ -46,4 +46,7 @@ public class UserService {
         }
         return null;
     }
+
+
+
 }
