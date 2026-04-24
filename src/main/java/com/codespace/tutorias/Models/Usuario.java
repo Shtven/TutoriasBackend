@@ -1,23 +1,29 @@
 package com.codespace.tutorias.Models;
 
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
+@Entity
+public class Usuario {
 
-public class User {
     @Id
     private String matricula;
 
     private String nombre;
     private String apellidoP;
     private String apellidoM;
+
+    @Column(unique = true)
     private String correo;
+
     private String pwd;
-    private int rol;
 
-    public User(){ }
+    @ManyToOne
+    @JoinColumn(name = "rol")
+    private Rol rol;
 
-    public User(String matricula, String nombre, String correo, String pwd, int rol) {
+    public Usuario() {}
+
+    public Usuario(String matricula, String nombre, String correo, String pwd, Rol rol) {
         this.matricula = matricula;
         this.nombre = nombre;
         this.correo = correo;
@@ -74,11 +80,11 @@ public class User {
         this.pwd = pwd;
     }
 
-    public int getRol() {
+    public Rol getRol() {
         return rol;
     }
 
-    public void setRol(int rol) {
+    public void setRol(Rol rol) {
         this.rol = rol;
     }
 }

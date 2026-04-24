@@ -1,12 +1,21 @@
 package com.codespace.tutorias.Models;
 
+import jakarta.persistence.*;
+import java.util.List;
+
+@Entity
 public class Rol {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idRol;
+
     private String rol;
 
-    public Rol() {
-    }
+    @OneToMany(mappedBy = "rol")
+    private List<Permisos> permisos;
+
+    public Rol() {}
 
     public Rol(int idRol, String rol) {
         this.idRol = idRol;
@@ -27,5 +36,13 @@ public class Rol {
 
     public void setRol(String rol) {
         this.rol = rol;
+    }
+
+    public List<Permisos> getPermisos() {
+        return permisos;
+    }
+
+    public void setPermisos(List<Permisos> permisos) {
+        this.permisos = permisos;
     }
 }

@@ -4,9 +4,8 @@ import com.codespace.tutorias.DTO.Request.RegisterRequest;
 import com.codespace.tutorias.DTO.Responsive.JWT;
 import com.codespace.tutorias.JWT.JWTUtils;
 import com.codespace.tutorias.Models.Rol;
-import com.codespace.tutorias.Models.User;
+import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Repositories.RolRepository;
-import com.codespace.tutorias.Services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -23,8 +22,8 @@ public class UserMapping {
     @Autowired
     private RolRepository rolRepository;
 
-    public User toEntity(RegisterRequest request){
-        User entity = new User();
+    public Usuario toEntity(RegisterRequest request){
+        Usuario entity = new Usuario();
         entity.setMatricula(request.getMatricula());
         entity.setNombre(request.getNombre());
         entity.setApellidoP(request.getApellidoP());
@@ -40,13 +39,13 @@ public class UserMapping {
         return passwordEncoder.matches(pwd, encodedPwd);
     }
 
-    public JWT generateToken(User user){
-        Optional<Rol> rolEntity = rolRepository.findById(user.getRol());
+    public JWT generateToken(Usuario usuario){
+        Optional<Rol> rolEntity = rolRepository.findById(usuario.getRol());
         JWT jwt = new JWT();
         if(rolEntity.isEmpty()){
             return null;
         }
-        String token = jwtUtils.generateToken(user.getMatricula(), rolEntity.get().getRol());
+        String token = jwtUtils.generateToken(usuario.getMatricula(), rolEntity.get().getRol());
 
         jwt.setToken(token);
         jwt.setRol(rolEntity.get().getRol());

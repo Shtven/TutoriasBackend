@@ -4,6 +4,9 @@ public class LoginRequest {
     private String matricula;
     private String pwd;
 
+    public LoginRequest(){
+    }
+
     public String getMatricula() {
         return matricula;
     }
