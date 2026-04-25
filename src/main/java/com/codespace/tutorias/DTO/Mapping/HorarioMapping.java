@@ -1,6 +1,7 @@
 package com.codespace.tutorias.DTO.Mapping;
 
 import com.codespace.tutorias.DTO.Request.HorarioRequest;
+import com.codespace.tutorias.DTO.Responsive.HorarioResponsive;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Usuario;
@@ -12,15 +13,24 @@ import org.springframework.stereotype.Component;
 @Component
 public class HorarioMapping {
 
-    public Horario toEntity(HorarioRequest request, Usuario usuario, Materia materia) {
+    public Horario toEntity(HorarioRequest request, Usuario usuario) {
         Horario entity = new Horario();
         entity.setTutor(usuario);
-        entity.setMateria(materia);
         entity.setDia(request.getDia());
         entity.setHoraInicio(request.getHoraInicio());
         entity.setHoraFin(request.getHoraFin());
 
         return  entity;
+    }
+
+    public HorarioResponsive toDTO(Horario entity) {
+        HorarioResponsive dto = new HorarioResponsive();
+        dto.setId(entity.getIdHorario());
+        dto.setDia(entity.getDia());
+        dto.setHoraInicio(entity.getHoraInicio());
+        dto.setHoraFin(entity.getHoraFin());
+
+        return dto;
     }
 
 }
