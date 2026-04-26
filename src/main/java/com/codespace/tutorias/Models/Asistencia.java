@@ -1,6 +1,7 @@
 package com.codespace.tutorias.Models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,6 +14,7 @@ public class Asistencia {
     @ManyToOne
     @JoinColumn(name = "id_tutoria")
     private Tutoria tutoria;
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "matricula")
     private Usuario usuario;
