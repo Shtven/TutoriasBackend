@@ -1,13 +1,13 @@
 package com.codespace.tutorias.DTO.Responsive;
 
-public class JWT {
+public class TokenLogin {
     private String token;
     private String rol;
 
-    public JWT() {
+    public TokenLogin() {
     }
 
-    public JWT(String token, String rol) {
+    public TokenLogin(String token, String rol) {
         this.token = token;
         this.rol = rol;
     }

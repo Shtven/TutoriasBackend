@@ -2,6 +2,7 @@ package com.codespace.tutorias.Services;
 
 import com.codespace.tutorias.DTO.Mapping.HorarioMapping;
 import com.codespace.tutorias.DTO.Request.HorarioRequest;
+import com.codespace.tutorias.DTO.Responsive.HorarioResponsive;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Usuario;
@@ -20,93 +21,61 @@ public class HorarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
     @Autowired
-    private MateriaRepository materiaRepository;
-    @Autowired
     private HorarioRepository horarioRepository;
     @Autowired
     private HorarioMapping  horarioMapping;
 
-//    public void crearTutoria(HorarioRequest request, String matricula) {
-//        Optional<Usuario> usuario = usuarioRepository.findById(matricula);
-//        Optional<Materia> materia = materiaRepository.findByNrc(request.getNrc());
-//
-//        if (!usuario.isPresent()) {
-//            throw new RuntimeException("La matricula no existe");
-//        }
-//
-//        if (!materia.isPresent()) {
-//            throw new RuntimeException("La materia no existe");
-//        }
-//
-//        Horario newHorario = horarioMapping.toEntity(request, usuario.get(), materia.get());
-//
-//        horarioRepository.save(newHorario);
-//    }
-//
-//    public void modificarTutoria(HorarioRequest request, String matricula) {
-//        Optional<Usuario> usuario = usuarioRepository.findById(matricula);
-//        Optional<Materia> materia = materiaRepository.findByNrc(request.getNrc());
-//        if (!usuario.isPresent()) {
-//            throw new RuntimeException("La matricula no existe");
-//        }
-//
-//        if (!materia.isPresent()) {
-//            throw new RuntimeException("La materia no existe");
-//        }
-//
-//
-//    }
+    public void crearTutoria(HorarioRequest request, String matricula) {
+        Optional<Usuario> usuario = usuarioRepository.findById(matricula);
 
-    public List<HorariosMostrarDTO> listarHorariosPublicos() {
-        return horarioRepository.findAll()
-                .stream()
-                .map(horarioMapping::convertirAPublica)
-                .toList();
-    }
-
-    public Optional<HorariosMostrarDTO> buscarHorarioPublico(int id) {
-        return horarioRepository.findById(id)
-                .map(horarioMapping::convertirAPublica);
-    }
-
-    public HorariosDTO crearHorario(CrearHorarioDTO dto, String matricula) {
-        Horario horario = horarioMapping.convertirANuevaEntidad(dto, matricula);
-
-        List<Horario> horariosTutor = findByTutor(matricula);
-
-        for(Horario h: horariosTutor){
-            if(horario.getDia().equals(h.getDia()) &&
-                    DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
-                            horario.getHoraInicio(), horario.getHoraFin())){
-                throw new BusinessException("Ya tienes un horario con estos datos.");
-            }
+        if (!usuario.isPresent()) {
+            throw new RuntimeException("La matricula no existe");
         }
-        return horarioMapping.convertirADTO(horarioRepository.save(horario));
+
+        Horario newHorario = horarioMapping.toEntity(request, usuario.get());
+
+        horarioRepository.save(newHorario);
     }
 
-    public Optional<Horario> actualizarHorario(int id, HorariosDTO dto) {
-        return horarioRepository.findById(id)
-                .map(existing -> {
-                    var entidad = horarioMapping.convertirAEntidad(dto);
-                    entidad.setIdHorario(id);
-                    return horarioRepository.save(entidad);
-                });
+    public List<HorarioResponsive> listarHorarios(String matricula) {
+        return horarioRepository.findByMatricula(matricula).stream().map(horarioMapping::toDTO).toList();
     }
 
-    public void eliminarHorario(int id) {
-        horarioRepository.deleteById(id);
+    public HorarioResponsive listarHorario(int idHorario) {
+        Optional<Horario> horario = horarioRepository.findById(idHorario);
+
+        if (!horario.isPresent()) {
+            throw new RuntimeException("El horario no existe");
+        }
+
+        return horarioMapping.toDTO(horario.get());
     }
 
+    public void eliminarHorario(int idHorario) {
+        Optional<Horario> horario = horarioRepository.findById(idHorario);
 
-    private List<Horario> findByTutor(String matricula){
-        return horarioRepository.findByTutor(matricula);
+        if (!horario.isPresent()) {
+            throw new RuntimeException("El horario no existe");
+        }
+
+        horarioRepository.deleteById(idHorario);
     }
 
-    public List<HorariosMostrarDTO> misHorarios(String matricula){
-        return horarioRepository.findByTutor(matricula)
-                .stream()
-                .map(horarioMapping::convertirAPublica)
-                .toList();
+    public void modificarHorario(int idHorario, HorarioRequest request, String matricula) {
+        Optional<Usuario> usuario = usuarioRepository.findById(matricula);
+        Optional<Horario> horario = horarioRepository.findById(idHorario);
 
+        if (!usuario.isPresent()) {
+            throw new RuntimeException("La matricula no existe");
+        }
+
+        if (!horario.isPresent()) {
+            throw new RuntimeException("El horario no existe");
+        }
+
+        Horario updatedHorario = horarioMapping.toEntity(request, usuario.get());
+        updatedHorario.setIdHorario(idHorario);
+
+        horarioRepository.save(updatedHorario);
     }
 }

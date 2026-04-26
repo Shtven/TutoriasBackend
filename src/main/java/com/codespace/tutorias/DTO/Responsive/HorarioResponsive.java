@@ -1,14 +1,29 @@
-package com.codespace.tutorias.DTO.Request;
+package com.codespace.tutorias.DTO.Responsive;
 
 import java.sql.Time;
 
-public class HorarioRequest {
-
+public class HorarioResponsive {
+    private int id;
     private String dia;
     private Time horaInicio;
     private Time horaFin;
 
-    public HorarioRequest() {
+    public HorarioResponsive() {
+    }
+
+    public HorarioResponsive(int id, String dia, Time horaInicio, Time horaFin) {
+        this.id = id;
+        this.dia = dia;
+        this.horaInicio = horaInicio;
+        this.horaFin = horaFin;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getDia() {
