@@ -2,20 +2,26 @@ package com.codespace.tutorias.DTO.Mapping;
 
 import com.codespace.tutorias.DTO.Request.TutoriaRequest;
 import com.codespace.tutorias.DTO.Responsive.TutoriaResponsive;
+import com.codespace.tutorias.Models.Asistencia;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Tutoria;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class TutoriaMapping {
 
     public Tutoria toEntity(TutoriaRequest request, Materia materia, Horario horario) {
         Tutoria entity = new Tutoria();
+        List<Asistencia> asistencias = new ArrayList<>();
         entity.setAula(request.getAula());
         entity.setMateria(materia);
         entity.setHorario(horario);
         entity.setEdificio(request.getEdificio());
+        entity.setAsistencias(asistencias);
         entity.setFecha(request.getFecha());
         entity.setEstado("Programada");
         return entity;

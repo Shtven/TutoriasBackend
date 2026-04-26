@@ -1,8 +1,10 @@
 package com.codespace.tutorias.Models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 public class Tutoria {
@@ -12,11 +14,11 @@ public class Tutoria {
     @ManyToOne
     @JoinColumn(name = "id_horario")
     private Horario horario;
+    @JsonManagedReference
+    @OneToMany(mappedBy = "tutoria")
+    private List<Asistencia> asistencias;
     @ManyToOne
-    @JoinColumn(name = "matricula")
-    private Usuario tutorado;
-    @ManyToOne
-    @JoinColumn(name = "id_Materia")
+    @JoinColumn(name = "id_materia")
     private Materia materia;
     private int edificio;
     private int aula;
@@ -42,12 +44,12 @@ public class Tutoria {
         this.horario = horario;
     }
 
-    public Usuario getTutorado() {
-        return tutorado;
+    public List<Asistencia> getAsistencias() {
+        return asistencias;
     }
 
-    public void setTutorado(Usuario tutorado) {
-        this.tutorado = tutorado;
+    public void setAsistencias(List<Asistencia> asistencias) {
+        this.asistencias = asistencias;
     }
 
     public Materia getMateria() {
