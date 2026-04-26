@@ -14,7 +14,7 @@ public class TutoriaController {
     @Autowired
     private TutoriaService tutoriaService;
 
-    @PostMapping("/")
+    @PostMapping
     @PreAuthorize("hasRole('TUTOR')")
     public ResponseEntity<?> crearTutoria(@RequestBody TutoriaRequest tutoriaRequest) {
         tutoriaService.crearTutoria(tutoriaRequest);
@@ -41,7 +41,7 @@ public class TutoriaController {
         return ResponseEntity.ok(tutoriaService.obtenerTutoriaPorId(id));
     }
 
-    @GetMapping("/")
+    @GetMapping
     @PreAuthorize("hasRole('TUTOR')")
     public ResponseEntity<?> listarTutorias(@RequestAttribute("matricula") String matricula) {
         return ResponseEntity.ok(tutoriaService.obtenerTutorias(matricula));

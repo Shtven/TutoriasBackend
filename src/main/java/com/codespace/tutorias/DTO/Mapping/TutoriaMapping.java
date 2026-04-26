@@ -23,7 +23,7 @@ public class TutoriaMapping {
         entity.setEdificio(request.getEdificio());
         entity.setAsistencias(asistencias);
         entity.setFecha(request.getFecha());
-        entity.setEstado("Programada");
+        entity.setEstado("PROGRAMADA");
         return entity;
     }
 

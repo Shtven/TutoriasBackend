@@ -29,6 +29,8 @@ public class TutoriaService {
     private TutoriaRepository tutoriaRepository;
     @Autowired
     private TutoriaMapping tutoriaMapping;
+    @Autowired
+    private EmailService emailService;
 
     public void crearTutoria(TutoriaRequest request) {
         Optional<Horario> horario = horarioRepository.findById(request.getIdHorario());
@@ -95,14 +97,13 @@ public class TutoriaService {
     }
 
     public void eliminarTutoria(int idTutoria){
-        Optional<Tutoria> tutoria = tutoriaRepository.findById(idTutoria);
+        Tutoria tutoria = tutoriaRepository.findById(idTutoria)
+                .orElseThrow(() -> new RuntimeException("La tutoría no existe"));
 
-        if (!tutoria.isPresent()) {
-            throw new RuntimeException("La tutoría no existe");
-        }
+        emailService.enviarCorreoCancelacion(tutoria);
 
-        tutoriaRepository.deleteById(idTutoria);
+        tutoria.setEstado("CANCELADA");
+
+        tutoriaRepository.save(tutoria);
     }
-
-
 }
