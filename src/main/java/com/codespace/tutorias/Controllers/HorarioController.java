@@ -15,24 +15,25 @@ public class HorarioController {
     @Autowired
     private HorarioService horarioService;
 
-    @PostMapping("/")
+    @PostMapping
     @PreAuthorize("hasRole('TUTOR')")
     public ResponseEntity<?> crearHorario(@RequestAttribute("matricula") String matricula, @RequestBody HorarioRequest horarioRequest){
         horarioService.crearTutoria(horarioRequest, matricula);
-        return ResponseEntity.ok(200);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('TUTOR')")
-    public ResponseEntity<?> actualizarHorario(@PathVariable int id, @RequestBody HorarioRequest horario){
-        return  ResponseEntity.ok(200);
+    public ResponseEntity<?> actualizarHorario(@RequestAttribute("matricula") String matricula, @PathVariable int id, @RequestBody HorarioRequest horario){
+        horarioService.modificarHorario(id, horario, matricula);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('TUTOR')")
     public ResponseEntity<?> eliminarHorario(@PathVariable int id){
         horarioService.eliminarHorario(id);
-        return ResponseEntity.ok(200);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{id}")
@@ -41,7 +42,7 @@ public class HorarioController {
         return ResponseEntity.ok(horarioService.listarHorario(id));
     }
 
-    @GetMapping("/")
+    @GetMapping
     @PreAuthorize("hasRole('TUTOR')")
     public ResponseEntity<?> listarHorarios(@RequestAttribute("matricula") String matricula){
         return ResponseEntity.ok(horarioService.listarHorarios(matricula));
