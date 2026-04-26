@@ -14,10 +14,6 @@ public class Horario {
     @JoinColumn(name = "matricula")
     private Usuario tutor;
 
-    @ManyToOne
-    @JoinColumn(name = "id_Materia")
-    private Materia materia;
-
     private String dia;
 
     private Time horaInicio;
@@ -26,10 +22,9 @@ public class Horario {
 
     public Horario() {}
 
-    public Horario(int idHorario, Usuario tutor, Materia materia, String dia, Time horaInicio, Time horaFin) {
+    public Horario(int idHorario, Usuario tutor, String dia, Time horaInicio, Time horaFin) {
         this.idHorario = idHorario;
         this.tutor = tutor;
-        this.materia = materia;
         this.dia = dia;
         this.horaInicio = horaInicio;
         this.horaFin = horaFin;
@@ -49,14 +44,6 @@ public class Horario {
 
     public void setTutor(Usuario tutor) {
         this.tutor = tutor;
-    }
-
-    public Materia getMateria() {
-        return materia;
-    }
-
-    public void setMateria(Materia materia) {
-        this.materia = materia;
     }
 
     public String getDia() {

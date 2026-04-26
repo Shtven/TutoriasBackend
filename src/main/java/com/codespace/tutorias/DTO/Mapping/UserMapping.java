@@ -1,7 +1,7 @@
 package com.codespace.tutorias.DTO.Mapping;
 
 import com.codespace.tutorias.DTO.Request.RegisterRequest;
-import com.codespace.tutorias.DTO.Responsive.JWT;
+import com.codespace.tutorias.DTO.Responsive.TokenLogin;
 import com.codespace.tutorias.JWT.JWTUtils;
 import com.codespace.tutorias.Models.Rol;
 import com.codespace.tutorias.Models.Usuario;
@@ -22,7 +22,7 @@ public class UserMapping {
     @Autowired
     private RolRepository rolRepository;
 
-    public Usuario toEntity(RegisterRequest request){
+    public Usuario toEntity(RegisterRequest request, Rol rol){
         Usuario entity = new Usuario();
         entity.setMatricula(request.getMatricula());
         entity.setNombre(request.getNombre());
@@ -30,7 +30,7 @@ public class UserMapping {
         entity.setApellidoM(request.getApellidoM());
         entity.setCorreo(request.getCorreo());
         entity.setPwd(passwordEncoder.encode(request.getPwd()));
-        entity.setRol(request.getRol());
+        entity.setRol(rol);
 
         return entity;
     }
@@ -39,17 +39,17 @@ public class UserMapping {
         return passwordEncoder.matches(pwd, encodedPwd);
     }
 
-    public JWT generateToken(Usuario usuario){
-        Optional<Rol> rolEntity = rolRepository.findById(usuario.getRol());
-        JWT jwt = new JWT();
+    public TokenLogin generateToken(Usuario usuario){
+        Optional<Rol> rolEntity = rolRepository.findById(usuario.getRol().getIdRol());
+        TokenLogin tokenLogin = new TokenLogin();
         if(rolEntity.isEmpty()){
             return null;
         }
         String token = jwtUtils.generateToken(usuario.getMatricula(), rolEntity.get().getRol());
 
-        jwt.setToken(token);
-        jwt.setRol(rolEntity.get().getRol());
+        tokenLogin.setToken(token);
+        tokenLogin.setRol(rolEntity.get().getRol());
 
-        return jwt;
+        return tokenLogin;
     }
 }
