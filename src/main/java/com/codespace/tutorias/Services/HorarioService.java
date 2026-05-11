@@ -3,6 +3,7 @@ package com.codespace.tutorias.Services;
 import com.codespace.tutorias.DTO.Mapping.HorarioMapping;
 import com.codespace.tutorias.DTO.Request.HorarioRequest;
 import com.codespace.tutorias.DTO.Responsive.HorarioResponsive;
+import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.DateHelper;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
@@ -26,17 +27,17 @@ public class HorarioService {
     @Autowired
     private HorarioMapping  horarioMapping;
 
-    public void crearTutoria(HorarioRequest request, String matricula) {
+    public void crearHorario(HorarioRequest request, String matricula) {
         Optional<Usuario> usuario = usuarioRepository.findById(matricula);
         if (!usuario.isPresent()) {
-            throw new RuntimeException("La matricula no existe");
+            throw new BusinessException("La matricula no existe");
         }
 
         for(Horario h: horarioRepository.findByMatricula(matricula)){
             if(request.getDia().equals(h.getDia()) &&
                     DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
                             request.getHoraInicio(), request.getHoraFin())){
-                throw new RuntimeException("Ya tienes un horario con estos datos.");
+                throw new BusinessException("Ya tienes un horario con estos datos.");
             }
         }
 
@@ -53,7 +54,7 @@ public class HorarioService {
         Optional<Horario> horario = horarioRepository.findById(idHorario);
 
         if (!horario.isPresent()) {
-            throw new RuntimeException("El horario no existe");
+            throw new BusinessException("El horario no existe");
         }
 
         return horarioMapping.toDTO(horario.get());
@@ -63,7 +64,7 @@ public class HorarioService {
         Optional<Horario> horario = horarioRepository.findById(idHorario);
 
         if (!horario.isPresent()) {
-            throw new RuntimeException("El horario no existe");
+            throw new BusinessException("El horario no existe");
         }
 
         horarioRepository.deleteById(idHorario);
@@ -74,19 +75,19 @@ public class HorarioService {
         Optional<Horario> horario = horarioRepository.findById(idHorario);
 
         if (!usuario.isPresent()) {
-            throw new RuntimeException("La matricula no existe");
+            throw new BusinessException("La matricula no existe");
         }
 
         if (!horario.isPresent()) {
-            throw new RuntimeException("El horario no existe");
+            throw new BusinessException("El horario no existe");
         }
 
         for(Horario h: horarioRepository.findByMatricula(matricula)){
-            if(horario.get().getDia().equals(h.getDia()) &&
-                    DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
-                            horario.get().getHoraInicio(), horario.get().getHoraFin())){
-                throw new RuntimeException("Ya tienes un horario con estos datos.");
-            }
+            if (h.getIdHorario() == idHorario) continue;
+            if(request.getDia().equals(h.getDia()) && DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
+                    request.getHoraInicio(), request.getHoraFin())){
+                 throw new BusinessException("Ya tienes un horario con estos datos.");
+             }
         }
 
         Horario updatedHorario = horarioMapping.toEntity(request, usuario.get());

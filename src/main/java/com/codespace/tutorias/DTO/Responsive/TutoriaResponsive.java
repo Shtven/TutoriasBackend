@@ -1,14 +1,14 @@
 package com.codespace.tutorias.DTO.Responsive;
 
-import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class TutoriaResponsive {
     private int id;
     private LocalDate fecha;
     private String nombreTutor;
-    private Time horaInicio;
-    private Time horaFin;
+    private LocalTime horaInicio;
+    private LocalTime horaFin;
     private String materia;
     private int edificio;
     private int aula;
@@ -38,19 +38,19 @@ public class TutoriaResponsive {
         this.nombreTutor = nombreTutor;
     }
 
-    public Time getHoraInicio() {
+    public LocalTime getHoraInicio() {
         return horaInicio;
     }
 
-    public void setHoraInicio(Time horaInicio) {
+    public void setHoraInicio(LocalTime horaInicio) {
         this.horaInicio = horaInicio;
     }
 
-    public Time getHoraFin() {
+    public LocalTime getHoraFin() {
         return horaFin;
     }
 
-    public void setHoraFin(Time horaFin) {
+    public void setHoraFin(LocalTime horaFin) {
         this.horaFin = horaFin;
     }
 

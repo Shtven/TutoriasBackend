@@ -9,19 +9,20 @@ import static tools.jackson.databind.type.LogicalType.DateTime;
 
 public class DateHelper {
 
-    public static boolean haySolapamiento(Time inicio1, Time fin1,
-                                          Time inicio2, Time fin2) {
+    public static boolean haySolapamiento(LocalTime inicio1, LocalTime fin1,
+                                          LocalTime inicio2, LocalTime fin2) {
 
-        return inicio1.toLocalTime().isBefore(fin2.toLocalTime()) && inicio2.toLocalTime().isBefore(fin1.toLocalTime());
+        return inicio1.isBefore(fin2) && inicio2.isBefore(fin1);
     }
 
-    public static boolean faltaMenosDe15Minutos(LocalDate fecha, LocalTime horaInicio) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime inicioTutoria = LocalDateTime.of(fecha, horaInicio);
-        return Duration.between(now, inicioTutoria).toMinutes() < 15;
+    public static boolean menosDe15Min(LocalDate fecha, LocalTime horaInicio) {
+        ZoneId zona = ZoneId.of("America/Mexico_City");
+        ZonedDateTime now = ZonedDateTime.now(zona);
+        ZonedDateTime inicio = ZonedDateTime.of(fecha, horaInicio, zona);
+        return Duration.between(now, inicio).toMinutes() < 15;
     }
 
-    public static boolean yaComenzo(LocalDate fecha, Time horaInicio) {
+    public static boolean yaComenzo(LocalDate fecha, LocalTime horaInicio) {
 
         ZoneId zonaMexico = ZoneId.of("America/Mexico_City");
 
@@ -29,7 +30,7 @@ public class DateHelper {
 
         ZonedDateTime inicioTutoria = ZonedDateTime.of(
                 fecha,
-                horaInicio.toLocalTime(),
+                horaInicio,
                 zonaMexico
         );
 

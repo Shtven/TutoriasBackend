@@ -1,5 +1,6 @@
 package com.codespace.tutorias.DTO.Mapping;
 
+import com.codespace.tutorias.DTO.Request.ActualizarTutoriaRequest;
 import com.codespace.tutorias.DTO.Request.TutoriaRequest;
 import com.codespace.tutorias.DTO.Responsive.TutoriaResponsive;
 import com.codespace.tutorias.Models.Asistencia;
@@ -42,5 +43,17 @@ public class TutoriaMapping {
         dto.setEstado(entity.getEstado());
 
         return dto;
+    }
+
+    public Tutoria update(ActualizarTutoriaRequest request, Materia materia, Horario horario, List<Asistencia> asistencias) {
+        Tutoria entity = new Tutoria();
+        entity.setAula(request.getAula());
+        entity.setMateria(materia);
+        entity.setHorario(horario);
+        entity.setEdificio(request.getEdificio());
+        entity.setAsistencias(asistencias);
+        entity.setFecha(request.getFecha());
+        entity.setEstado("PROGRAMADA");
+        return entity;
     }
 }

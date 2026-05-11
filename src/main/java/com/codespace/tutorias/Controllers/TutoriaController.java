@@ -1,6 +1,8 @@
 package com.codespace.tutorias.Controllers;
 
+import com.codespace.tutorias.DTO.Request.ActualizarTutoriaRequest;
 import com.codespace.tutorias.DTO.Request.TutoriaRequest;
+import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.TutoriaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,35 +17,48 @@ public class TutoriaController {
     private TutoriaService tutoriaService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TUTOR')")
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> crearTutoria(@RequestBody TutoriaRequest tutoriaRequest) {
         tutoriaService.crearTutoria(tutoriaRequest);
-        return ResponseEntity.ok(200);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria creada.", null));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('TUTOR')")
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> eliminarTutoria(@PathVariable int id) {
         tutoriaService.eliminarTutoria(id);
-        return ResponseEntity.ok(200);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria cancelada.", null));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('TUTOR')")
-    public ResponseEntity<?> actualizarTutoria(@PathVariable int id, @RequestBody TutoriaRequest tutoriaRequest) {
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
+    public ResponseEntity<?> actualizarTutoria(@PathVariable int id, @RequestBody ActualizarTutoriaRequest tutoriaRequest) {
         tutoriaService.actualizarTutoria(id, tutoriaRequest);
-        return ResponseEntity.ok(200);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria actualizada.", null));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('TUTOR')")
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> obtenerTutoria(@PathVariable int id) {
-        return ResponseEntity.ok(tutoriaService.obtenerTutoriaPorId(id));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria", tutoriaService.obtenerTutoriaPorId(id)));
     }
 
-    @GetMapping
-    @PreAuthorize("hasRole('TUTOR')")
+    @GetMapping("/mis-tutorias")
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> listarTutorias(@RequestAttribute("matricula") String matricula) {
-        return ResponseEntity.ok(tutoriaService.obtenerTutorias(matricula));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Mis tutorias", tutoriaService.obtenerTutorias(matricula)));
+    }
+
+    @GetMapping("/disponibles")
+    @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
+    public ResponseEntity<?> listarTutoriasTutorado() {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutorias", tutoriaService.obtenerTutoriasTutorado()));
+    }
+
+    @PutMapping("/completar/{id}")
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
+    public ResponseEntity<?> completarTutoria(@PathVariable int id) {
+        tutoriaService.completarTutoria(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria completa.", null));
     }
 }
