@@ -1,12 +1,12 @@
 package com.codespace.tutorias.DTO.Request;
 
-import java.sql.Time;
+import java.time.LocalTime;
 
 public class HorarioRequest {
 
     private String dia;
-    private Time horaInicio;
-    private Time horaFin;
+    private LocalTime horaInicio;
+    private LocalTime horaFin;
 
     public HorarioRequest() {
     }
@@ -19,19 +19,19 @@ public class HorarioRequest {
         this.dia = dia;
     }
 
-    public Time getHoraInicio() {
+    public LocalTime getHoraInicio() {
         return horaInicio;
     }
 
-    public void setHoraInicio(Time horaInicio) {
+    public void setHoraInicio(LocalTime horaInicio) {
         this.horaInicio = horaInicio;
     }
 
-    public Time getHoraFin() {
+    public LocalTime getHoraFin() {
         return horaFin;
     }
 
-    public void setHoraFin(Time horaFin) {
+    public void setHoraFin(LocalTime horaFin) {
         this.horaFin = horaFin;
     }
 }

@@ -5,22 +5,18 @@ import com.codespace.tutorias.DTO.Responsive.TokenLogin;
 import com.codespace.tutorias.JWT.JWTUtils;
 import com.codespace.tutorias.Models.Rol;
 import com.codespace.tutorias.Models.Usuario;
-import com.codespace.tutorias.Repositories.RolRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 public class UserMapping {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
     @Autowired
     private JWTUtils jwtUtils;
-    @Autowired
-    private RolRepository rolRepository;
 
     public Usuario toEntity(RegisterRequest request, Rol rol){
         Usuario entity = new Usuario();
@@ -40,15 +36,15 @@ public class UserMapping {
     }
 
     public TokenLogin generateToken(Usuario usuario){
-        Optional<Rol> rolEntity = rolRepository.findById(usuario.getRol().getIdRol());
         TokenLogin tokenLogin = new TokenLogin();
-        if(rolEntity.isEmpty()){
-            return null;
-        }
-        String token = jwtUtils.generateToken(usuario.getMatricula(), rolEntity.get().getRol());
+
+        String token = jwtUtils.generateToken(
+                usuario.getMatricula(),
+                usuario.getRol().getRol()
+        );
 
         tokenLogin.setToken(token);
-        tokenLogin.setRol(rolEntity.get().getRol());
+        tokenLogin.setRol(usuario.getRol().getRol());
 
         return tokenLogin;
     }
