@@ -14,6 +14,9 @@ public class JWTUtils {
     @Value("${api.key}")
     private String apiKey;
 
+    @Value("${api.jwt.expiration}")
+    private long expiration;
+
 
     public String generateToken(String matricula, String rol) {
 
@@ -21,7 +24,7 @@ public class JWTUtils {
                 .claim("matricula", matricula)
                 .claim("rol", rol)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 horas
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(Keys.hmacShaKeyFor(apiKey.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
     }

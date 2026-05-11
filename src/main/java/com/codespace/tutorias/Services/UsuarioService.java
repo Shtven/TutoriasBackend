@@ -4,7 +4,7 @@ import com.codespace.tutorias.DTO.Mapping.UserMapping;
 import com.codespace.tutorias.DTO.Request.LoginRequest;
 import com.codespace.tutorias.DTO.Request.RegisterRequest;
 import com.codespace.tutorias.DTO.Responsive.TokenLogin;
-import com.codespace.tutorias.JWT.JWTUtils;
+import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Models.Rol;
 import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Repositories.RolRepository;
@@ -12,50 +12,51 @@ import com.codespace.tutorias.Repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.List;
 
 @Service
 public class UsuarioService {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-    @Autowired
-    private UserMapping userMapping;
-    @Autowired
-    private JWTUtils jwtUtils;
-    @Autowired
-    private RolRepository rolRepository;
+        @Autowired
+        private UsuarioRepository usuarioRepository;
 
-    public void register(RegisterRequest register){
-        Optional<Usuario> usuario = usuarioRepository.findById(register.getMatricula());
-        Optional<Rol> rol = rolRepository.findById(register.getRol());
+        @Autowired
+        private UserMapping userMapping;
 
-        if(usuario.isPresent()){
-            throw new RuntimeException("La matricula ya esta registrada");
-        }
+        @Autowired
+        private RolRepository rolRepository;
 
-        if(usuario.get().getCorreo().equals(register.getCorreo())){
-            throw new RuntimeException("El correo ya esta registrado");
-        }
+        public void register(RegisterRequest register){
 
-        if(!rol.isPresent()){
-            throw new RuntimeException("EL rol no existe");
-        }
-
-        usuarioRepository.save(userMapping.toEntity(register, rol.get()));
-    }
-
-    public TokenLogin login(LoginRequest login){
-        Optional<Usuario> user = usuarioRepository.findById(login.getMatricula());
-
-        if(user.isPresent()){
-            if(userMapping.matchesPassword(login.getPwd(), user.get().getPwd())){
-                userMapping.generateToken(user.get());
+            if(usuarioRepository.existsById(register.getMatricula())){
+                throw new BusinessException("La matrícula ya está registrada");
             }
+
+            if(usuarioRepository.existsByCorreo(register.getCorreo())){
+                throw new BusinessException("El correo ya está registrado");
+            }
+
+            Rol rol = rolRepository.findById(register.getRol())
+                    .orElseThrow(() -> new BusinessException("El rol no existe"));
+
+            List<String> rolesPermitidos = List.of("TUTOR", "TUTORADO");
+            if (!rolesPermitidos.contains(rol.getRol().toUpperCase())) {
+                throw new BusinessException("No puedes registrarte con ese rol");
+            }
+
+            Usuario usuario = userMapping.toEntity(register, rol);
+
+            usuarioRepository.save(usuario);
         }
-        return null;
-    }
+        public TokenLogin login(LoginRequest login){
 
+            Usuario user = usuarioRepository.findById(login.getMatricula())
+                    .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
 
+            if(!userMapping.matchesPassword(login.getPwd(), user.getPwd())){
+                throw new BusinessException("Contraseña incorrecta");
+            }
 
+            return userMapping.generateToken(user);
+        }
 }

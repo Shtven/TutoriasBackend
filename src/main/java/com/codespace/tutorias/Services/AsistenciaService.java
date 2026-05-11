@@ -3,6 +3,7 @@ package com.codespace.tutorias.Services;
 import com.codespace.tutorias.DTO.Mapping.AsistenciaMapping;
 import com.codespace.tutorias.DTO.Request.AsistenciaRequest;
 import com.codespace.tutorias.DTO.Responsive.AsistenciaResponsive;
+import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.DateHelper;
 import com.codespace.tutorias.Models.Asistencia;
 import com.codespace.tutorias.Models.Horario;
@@ -28,47 +29,52 @@ public class AsistenciaService {
     private TutoriaRepository tutoriaRepository;
     @Autowired
     private AsistenciaMapping asistenciaMapping;
+    @Autowired
+    private EmailService emailService;
 
     public void crearAsistencia(AsistenciaRequest request, String matricula) {
 
         Usuario usuario = usuarioRepository.findById(matricula)
-                .orElseThrow(() -> new RuntimeException("El usuario no existe"));
+                .orElseThrow(() -> new BusinessException("El usuario no existe"));
 
         Tutoria tutoria = tutoriaRepository.findById(request.getIdTutoria())
-                .orElseThrow(() -> new RuntimeException("La tutoría no existe"));
+                .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 
         if (DateHelper.yaComenzo(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
-            throw new RuntimeException("La tutoría ya ha comenzado, ya no puedes inscribirte.");
+            throw new BusinessException("La tutoría ya ha comenzado, ya no puedes inscribirte.");
         }
 
         if (!"PROGRAMADA".equals(tutoria.getEstado())) {
-            throw new RuntimeException("La tutoría no está disponible");
+            throw new BusinessException("La tutoría no está disponible");
         }
 
         for (Asistencia a : asistenciaRepository.findByUsuarioMatricula(matricula)) {
 
             Tutoria existente = a.getTutoria();
 
-            if (existente.getHorario().getDia().equals(tutoria.getHorario().getDia()) &&
+            if (existente.getFecha().equals(tutoria.getFecha()) &&
+                    existente.getHorario().getDia().equals(tutoria.getHorario().getDia()) &&
                     DateHelper.haySolapamiento(
                             existente.getHorario().getHoraInicio(),
                             existente.getHorario().getHoraFin(),
                             tutoria.getHorario().getHoraInicio(),
                             tutoria.getHorario().getHoraFin()
                     )) {
-                throw new RuntimeException("Ya estás inscrito en otra tutoría con el mismo horario.");
+                throw new BusinessException("Ya estás inscrito en otra tutoría con el mismo horario.");
             }
         }
 
         long inscritos = asistenciaRepository.countByTutoriaIdTutoria(request.getIdTutoria());
 
         if (inscritos >= 5) {
-            throw new RuntimeException("La tutoría está llena.");
+            throw new BusinessException("La tutoría está llena.");
         }
 
         if (asistenciaRepository.findByMatriculaTutoria(matricula, request.getIdTutoria()).isPresent()) {
-            throw new RuntimeException("Ya existe una asistencia para esta tutoría");
+            throw new BusinessException("Ya existe una asistencia para esta tutoría");
         }
+
+        emailService.enviarCorreoConfirmacion(tutoria, usuario);
 
         asistenciaRepository.save(asistenciaMapping.toEntity(tutoria, usuario));
     }
@@ -76,13 +82,21 @@ public class AsistenciaService {
     public void eliminarAsistencia(int idAsistencia, String matricula) {
 
         Asistencia asistencia = asistenciaRepository.findById(idAsistencia)
-                .orElseThrow(() -> new RuntimeException("La asistencia no existe"));
+                .orElseThrow(() -> new BusinessException("La asistencia no existe"));
 
         if (!asistencia.getUsuario().getMatricula().equals(matricula)) {
-            throw new RuntimeException("No puedes eliminar esta asistencia");
+            throw new BusinessException("No puedes eliminar esta asistencia");
         }
 
+        Tutoria tutoria = asistencia.getTutoria(); if (DateHelper.menosDe15Min(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
+            throw new BusinessException("No puedes cancelar con menos de 15 minutos de anticipación");
+        }
         asistenciaRepository.delete(asistencia);
+    }
+
+    public List<AsistenciaResponsive> listarPorTutorado(String matricula) {
+        return asistenciaRepository.findByUsuarioMatricula(matricula)
+                .stream().map(asistenciaMapping::toDTO).toList();
     }
 
     public List<AsistenciaResponsive> listarAsistencias(int idTutoria) {
@@ -92,19 +106,18 @@ public class AsistenciaService {
 
     public AsistenciaResponsive listarAsistencia(int idAsistencia) {
         Asistencia asistencia = asistenciaRepository.findById(idAsistencia)
-                .orElseThrow(()-> new RuntimeException("La asistencia no existe"));
+                .orElseThrow(()-> new BusinessException("La asistencia no existe"));
 
         return asistenciaMapping.toDTO(asistencia);
     }
 
     public void actualizarAsistencia(boolean asistio, int idAsistencia) {
         Asistencia asistencia = asistenciaRepository.findById(idAsistencia)
-                .orElseThrow(()-> new RuntimeException("La asistencia no existe"));
+                .orElseThrow(()-> new BusinessException("La asistencia no existe"));
 
         asistencia.setAsistio(asistio);
 
         asistenciaRepository.save(asistencia);
     }
-
 
 }

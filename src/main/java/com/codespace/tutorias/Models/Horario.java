@@ -2,7 +2,7 @@ package com.codespace.tutorias.Models;
 
 import jakarta.persistence.*;
 
-import java.sql.Time;
+import java.time.LocalTime;
 
 @Entity
 public class Horario {
@@ -11,18 +11,18 @@ public class Horario {
     private int idHorario;
 
     @ManyToOne
-    @JoinColumn(name = "matricula")
+    @JoinColumn(name = "matricula_tutor")
     private Usuario tutor;
 
     private String dia;
 
-    private Time horaInicio;
+    private LocalTime horaInicio;
 
-    private Time horaFin;
+    private LocalTime horaFin;
 
     public Horario() {}
 
-    public Horario(int idHorario, Usuario tutor, String dia, Time horaInicio, Time horaFin) {
+    public Horario(int idHorario, Usuario tutor, String dia, LocalTime horaInicio, LocalTime horaFin) {
         this.idHorario = idHorario;
         this.tutor = tutor;
         this.dia = dia;
@@ -54,20 +54,19 @@ public class Horario {
         this.dia = dia;
     }
 
-    public Time getHoraInicio() {
+    public LocalTime getHoraInicio() {
         return horaInicio;
     }
 
-    public void setHoraInicio(Time horaInicio) {
+    public void setHoraInicio(LocalTime horaInicio) {
         this.horaInicio = horaInicio;
     }
 
-    public Time getHoraFin() {
+    public LocalTime getHoraFin() {
         return horaFin;
     }
 
-    public void setHoraFin(Time horaFin) {
+    public void setHoraFin(LocalTime horaFin) {
         this.horaFin = horaFin;
     }
-
 }

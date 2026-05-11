@@ -6,7 +6,6 @@ import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Models.Tutoria;
 import com.codespace.tutorias.Repositories.TutoriaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +36,7 @@ public class EmailService {
 
             if (!esValidaParaRecordatorio(tutoria, hoy)) continue;
 
-            LocalTime inicio = tutoria.getHorario().getHoraInicio().toLocalTime();
+            LocalTime inicio = tutoria.getHorario().getHoraInicio();
             long minutosRestantes = Duration.between(ahora, inicio).toMinutes();
 
             if (minutosRestantes <= 15 && ahora.isBefore(inicio)) {
@@ -47,8 +46,6 @@ public class EmailService {
                 for (Asistencia a : asistencias) {
 
                     Usuario usuario = a.getUsuario();
-
-                    //if (!usuario.isRecordatorio()) continue;
 
                     emailHelper.enviarCorreo(
                             usuario.getCorreo(),
@@ -89,11 +86,44 @@ public class EmailService {
         }
     }
 
+    public void enviarCorreoConfirmacion(Tutoria tutoria, Usuario tutorado) {
+
+        emailHelper.enviarCorreo(
+                tutorado.getCorreo(),
+                "Confirmación de inscripción a tutoría",
+                construirCorreoConfirmacionAlumno(tutorado, tutoria)
+        );
+
+        Usuario tutor = tutoria.getHorario().getTutor();
+
+        emailHelper.enviarCorreo(
+                tutor.getCorreo(),
+                "Nuevo alumno inscrito en tu tutoría",
+                construirCorreoConfirmacionTutor(tutor, tutorado, tutoria)
+        );
+    }
+
+    private String construirCorreoConfirmacionAlumno(Usuario usuario, Tutoria tutoria) {
+        return plantillaBase(
+                "¡Hola " + usuario.getNombre() + "!",
+                "Tu inscripción ha sido confirmada.",
+                tutoria
+        );
+    }
+
+    private String construirCorreoConfirmacionTutor(Usuario tutor, Usuario tutorado, Tutoria tutoria) {
+        return plantillaBase(
+                "¡Hola " + tutor.getNombre() + "!",
+                tutorado.getNombre() + " " + tutorado.getApellidoP() + " se ha inscrito en tu tutoría.",
+                tutoria
+        );
+    }
+
     private boolean esValidaParaRecordatorio(Tutoria tutoria, LocalDate hoy) {
         return !("COMPLETADA".equalsIgnoreCase(tutoria.getEstado()) ||
                 "CANCELADA".equalsIgnoreCase(tutoria.getEstado()))
                 && tutoria.getFecha().equals(hoy)
-                && "PENDIENTE".equalsIgnoreCase(tutoria.getEstado());
+                && "PROGRAMADA".equalsIgnoreCase(tutoria.getEstado());
     }
 
     private String construirCorreoAlumno(Usuario usuario, Tutoria tutoria) {
