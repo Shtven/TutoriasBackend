@@ -92,10 +92,6 @@ public class TutoriaService {
         Tutoria tutoriaExistente = tutoriaRepository.findById(idTutoria)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 
-        if (!tutoriaExistente.getAsistencias().isEmpty()) {
-            throw new BusinessException("No puedes modificar una tutoría con alumnos inscritos");
-        }
-
         Tutoria tutoriaActualizada = tutoriaMapping.update(request, tutoriaExistente.getMateria(), horario, tutoriaExistente.getAsistencias());
         tutoriaActualizada.setIdTutoria(idTutoria);
 
@@ -107,8 +103,16 @@ public class TutoriaService {
         Tutoria tutoria = tutoriaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 
-        if (DateHelper.yaComenzo(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
-            throw new BusinessException("La tutoría ya ha comenzado, no puedes marcarla como completada.");
+        if (!DateHelper.yaComenzo(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
+            throw new BusinessException("No puedes marcar como completada una tutoría que aún no ha iniciado.");
+        }
+
+        if ("COMPLETADA".equals(tutoria.getEstado())) {
+            throw new BusinessException("La tutoría ya está marcada como completada.");
+        }
+
+        if ("CANCELADA".equals(tutoria.getEstado())) {
+            throw new BusinessException("No puedes completar una tutoría cancelada.");
         }
 
         tutoria.setEstado("COMPLETADA");
@@ -119,10 +123,6 @@ public class TutoriaService {
     public void eliminarTutoria(int idTutoria){
         Tutoria tutoria = tutoriaRepository.findById(idTutoria)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
-
-        if (!tutoria.getAsistencias().isEmpty()) {
-            throw new BusinessException("No puedes cancelar una tutoría con alumnos inscritos");
-        }
 
         if (DateHelper.menosDe15Min(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
             throw new BusinessException("No puedes cancelar con menos de 15 minutos de anticipación");
