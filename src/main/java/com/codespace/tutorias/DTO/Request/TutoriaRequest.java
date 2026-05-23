@@ -2,6 +2,7 @@ package com.codespace.tutorias.DTO.Request;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.List;
 
 public class TutoriaRequest {
 
@@ -10,6 +11,7 @@ public class TutoriaRequest {
     private int aula;
     private int nrc;
     private LocalDate fecha;
+    private List<String> temas;
 
     public int getIdHorario() {
         return idHorario;
@@ -49,5 +51,13 @@ public class TutoriaRequest {
 
     public void setFecha(LocalDate fecha) {
         this.fecha = fecha;
+    }
+
+    public List<String> getTemas() {
+        return temas;
+    }
+
+    public void setTemas(List<String> temas) {
+        this.temas = temas;
     }
 }
