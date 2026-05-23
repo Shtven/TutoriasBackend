@@ -2,6 +2,7 @@ package com.codespace.tutorias.DTO.Responsive;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 public class TutoriaResponsive {
     private int id;
@@ -13,6 +14,7 @@ public class TutoriaResponsive {
     private int edificio;
     private int aula;
     private String estado;
+    private List<TemaResponsive> temas;
 
 
     public TutoriaResponsive() {
@@ -88,5 +90,13 @@ public class TutoriaResponsive {
 
     public void setAula(int aula) {
         this.aula = aula;
+    }
+
+    public List<TemaResponsive> getTemas() {
+        return temas;
+    }
+
+    public void setTemas(List<TemaResponsive> temas) {
+        this.temas = temas;
     }
 }

@@ -66,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers("/comentarios/**")
                         .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
 
+                        .requestMatchers("/temas/**")
+                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
+
                         // 🔐 Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )

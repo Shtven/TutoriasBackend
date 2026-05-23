@@ -17,6 +17,8 @@ public class Tutoria {
     @JsonManagedReference
     @OneToMany(mappedBy = "tutoria")
     private List<Asistencia> asistencias;
+    @OneToMany(mappedBy = "tutoria", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Tema> temas;
     @ManyToOne
     @JoinColumn(name = "id_materia")
     private Materia materia;
@@ -50,6 +52,14 @@ public class Tutoria {
 
     public void setAsistencias(List<Asistencia> asistencias) {
         this.asistencias = asistencias;
+    }
+
+    public List<Tema> getTemas() {
+        return temas;
+    }
+
+    public void setTemas(List<Tema> temas) {
+        this.temas = temas;
     }
 
     public Materia getMateria() {

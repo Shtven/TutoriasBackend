@@ -2,11 +2,14 @@ package com.codespace.tutorias.DTO.Mapping;
 
 import com.codespace.tutorias.DTO.Request.ActualizarTutoriaRequest;
 import com.codespace.tutorias.DTO.Request.TutoriaRequest;
+import com.codespace.tutorias.DTO.Responsive.TemaResponsive;
 import com.codespace.tutorias.DTO.Responsive.TutoriaResponsive;
 import com.codespace.tutorias.Models.Asistencia;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
+import com.codespace.tutorias.Models.Tema;
 import com.codespace.tutorias.Models.Tutoria;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -14,6 +17,9 @@ import java.util.List;
 
 @Component
 public class TutoriaMapping {
+
+    @Autowired
+    private TemaMapping temaMapping;
 
     public Tutoria toEntity(TutoriaRequest request, Materia materia, Horario horario) {
         Tutoria entity = new Tutoria();
@@ -25,6 +31,16 @@ public class TutoriaMapping {
         entity.setAsistencias(asistencias);
         entity.setFecha(request.getFecha());
         entity.setEstado("PROGRAMADA");
+
+        List<Tema> temas = new ArrayList<>();
+        if (request.getTemas() != null) {
+            for (String texto : request.getTemas()) {
+                if (texto != null && !texto.trim().isEmpty()) {
+                    temas.add(temaMapping.toEntity(texto.trim(), entity));
+                }
+            }
+        }
+        entity.setTemas(temas);
         return entity;
     }
 
@@ -41,6 +57,14 @@ public class TutoriaMapping {
         dto.setAula(entity.getAula());
         dto.setEdificio(entity.getEdificio());
         dto.setEstado(entity.getEstado());
+
+        List<TemaResponsive> temasDTO = new ArrayList<>();
+        if (entity.getTemas() != null) {
+            for (Tema t : entity.getTemas()) {
+                temasDTO.add(temaMapping.toDTO(t));
+            }
+        }
+        dto.setTemas(temasDTO);
 
         return dto;
     }
