@@ -32,8 +32,10 @@ public class HorarioController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> eliminarHorario(@PathVariable int id){
-        horarioService.eliminarHorario(id);
+    public ResponseEntity<?> eliminarHorario(
+            @PathVariable int id,
+            @RequestAttribute("matricula") String matricula){
+        horarioService.eliminarHorario(id, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Horario eliminado.", null));
     }
 

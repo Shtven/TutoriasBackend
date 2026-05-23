@@ -86,11 +86,15 @@ public class TutoriaService {
         return tutoriaResponse;
     }
 
-    public void actualizarTutoria(int idTutoria, ActualizarTutoriaRequest request) {
+    public void actualizarTutoria(int idTutoria, ActualizarTutoriaRequest request, String matricula) {
         Horario horario = horarioRepository.findById(request.getIdHorario())
                 .orElseThrow(() -> new BusinessException("El horario no existe"));
         Tutoria tutoriaExistente = tutoriaRepository.findById(idTutoria)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
+
+        if (!tutoriaExistente.getHorario().getTutor().getMatricula().equals(matricula)) {
+            throw new BusinessException("Solo el tutor dueño puede modificar esta tutoría.");
+        }
 
         Tutoria tutoriaActualizada = tutoriaMapping.update(request, tutoriaExistente.getMateria(), horario, tutoriaExistente.getAsistencias());
         tutoriaActualizada.setIdTutoria(idTutoria);
@@ -99,9 +103,13 @@ public class TutoriaService {
 
     }
 
-    public void completarTutoria(int id){
+    public void completarTutoria(int id, String matricula){
         Tutoria tutoria = tutoriaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
+
+        if (!tutoria.getHorario().getTutor().getMatricula().equals(matricula)) {
+            throw new BusinessException("Solo el tutor dueño puede completar esta tutoría.");
+        }
 
         if (!DateHelper.yaComenzo(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
             throw new BusinessException("No puedes marcar como completada una tutoría que aún no ha iniciado.");
@@ -120,9 +128,13 @@ public class TutoriaService {
         tutoriaRepository.save(tutoria);
     }
 
-    public void eliminarTutoria(int idTutoria){
+    public void eliminarTutoria(int idTutoria, String matricula){
         Tutoria tutoria = tutoriaRepository.findById(idTutoria)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
+
+        if (!tutoria.getHorario().getTutor().getMatricula().equals(matricula)) {
+            throw new BusinessException("Solo el tutor dueño puede cancelar esta tutoría.");
+        }
 
         if (DateHelper.menosDe15Min(tutoria.getFecha(), tutoria.getHorario().getHoraInicio())) {
             throw new BusinessException("No puedes cancelar con menos de 15 minutos de anticipación");

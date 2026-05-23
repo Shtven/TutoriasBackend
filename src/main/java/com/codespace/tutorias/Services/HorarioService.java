@@ -60,11 +60,12 @@ public class HorarioService {
         return horarioMapping.toDTO(horario.get());
     }
 
-    public void eliminarHorario(int idHorario) {
-        Optional<Horario> horario = horarioRepository.findById(idHorario);
+    public void eliminarHorario(int idHorario, String matricula) {
+        Horario horario = horarioRepository.findById(idHorario)
+                .orElseThrow(() -> new BusinessException("El horario no existe"));
 
-        if (!horario.isPresent()) {
-            throw new BusinessException("El horario no existe");
+        if (!horario.getTutor().getMatricula().equals(matricula)) {
+            throw new BusinessException("Solo el tutor dueño puede eliminar este horario.");
         }
 
         horarioRepository.deleteById(idHorario);
@@ -80,6 +81,10 @@ public class HorarioService {
 
         if (!horario.isPresent()) {
             throw new BusinessException("El horario no existe");
+        }
+
+        if (!horario.get().getTutor().getMatricula().equals(matricula)) {
+            throw new BusinessException("Solo el tutor dueño puede modificar este horario.");
         }
 
         for(Horario h: horarioRepository.findByMatricula(matricula)){
