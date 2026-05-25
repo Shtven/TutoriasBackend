@@ -43,7 +43,7 @@ public class TutoriaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TUTOR', 'TUTORADO', 'ADMIN')")
     public ResponseEntity<?> obtenerTutoria(@PathVariable int id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria", tutoriaService.obtenerTutoriaPorId(id)));
     }

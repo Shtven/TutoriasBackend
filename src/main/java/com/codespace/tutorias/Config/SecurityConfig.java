@@ -54,6 +54,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/tutorias/**")
                         .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
 
+                        // 🎯 Reglas mas especificas PRIMERO (Spring evalua por orden)
+                        .requestMatchers(HttpMethod.GET, "/tutoria/disponibles")
+                        .hasAnyRole("TUTORADO", "ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/tutoria/{id:\\d+}")
+                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
+
+                        // Regla generica al final
                         .requestMatchers("/tutoria/**")
                         .hasAnyRole("TUTOR", "ADMIN")
 
