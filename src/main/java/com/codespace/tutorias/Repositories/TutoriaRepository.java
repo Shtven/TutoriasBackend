@@ -13,4 +13,6 @@ public interface TutoriaRepository extends JpaRepository<Tutoria, Integer> {
 
     @Query("SELECT tu FROM Tutoria tu WHERE tu.estado='PROGRAMADA' AND tu.fecha >= CURRENT_DATE")
     List<Tutoria> findAllProgramadas();
+
+    boolean existsByHorario_IdHorario(int idHorario);
 }

@@ -10,6 +10,7 @@ import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Repositories.HorarioRepository;
 import com.codespace.tutorias.Repositories.MateriaRepository;
+import com.codespace.tutorias.Repositories.TutoriaRepository;
 import com.codespace.tutorias.Repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,8 @@ public class HorarioService {
     private UsuarioRepository usuarioRepository;
     @Autowired
     private HorarioRepository horarioRepository;
+    @Autowired
+    private TutoriaRepository tutoriaRepository;
     @Autowired
     private HorarioMapping  horarioMapping;
 
@@ -66,6 +69,10 @@ public class HorarioService {
 
         if (!horario.getTutor().getMatricula().equals(matricula)) {
             throw new BusinessException("Solo el tutor dueño puede eliminar este horario.");
+        }
+
+        if (tutoriaRepository.existsByHorario_IdHorario(idHorario)) {
+            throw new BusinessException("No puedes eliminar este horario porque tiene tutorías asociadas.");
         }
 
         horarioRepository.deleteById(idHorario);
