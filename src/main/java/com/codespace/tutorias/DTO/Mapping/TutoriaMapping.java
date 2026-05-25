@@ -2,6 +2,7 @@ package com.codespace.tutorias.DTO.Mapping;
 
 import com.codespace.tutorias.DTO.Request.ActualizarTutoriaRequest;
 import com.codespace.tutorias.DTO.Request.TutoriaRequest;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.DTO.Responsive.TemaResponsive;
 import com.codespace.tutorias.DTO.Responsive.TutoriaResponsive;
 import com.codespace.tutorias.Models.Asistencia;
@@ -30,7 +31,7 @@ public class TutoriaMapping {
         entity.setEdificio(request.getEdificio());
         entity.setAsistencias(asistencias);
         entity.setFecha(request.getFecha());
-        entity.setEstado("PROGRAMADA");
+        entity.setEstado(EstadosTutoria.PROGRAMADA);
 
         List<Tema> temas = new ArrayList<>();
         if (request.getTemas() != null) {
@@ -77,7 +78,7 @@ public class TutoriaMapping {
         entity.setEdificio(request.getEdificio());
         entity.setAsistencias(asistencias);
         entity.setFecha(request.getFecha());
-        entity.setEstado("PROGRAMADA");
+        entity.setEstado(EstadosTutoria.PROGRAMADA);
         return entity;
     }
 }

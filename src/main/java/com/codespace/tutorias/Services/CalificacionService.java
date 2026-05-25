@@ -3,6 +3,7 @@ package com.codespace.tutorias.Services;
 import com.codespace.tutorias.DTO.Request.CalificacionRequest;
 import com.codespace.tutorias.DTO.Responsive.PromedioTutorResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.Models.Asistencia;
 import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Repositories.AsistenciaRepository;
@@ -34,7 +35,7 @@ public class CalificacionService {
             throw new BusinessException("Solo puedes calificar tus propias tutorías.");
         }
 
-        if (!"COMPLETADA".equals(asistencia.getTutoria().getEstado())) {
+        if (!EstadosTutoria.COMPLETADA.equals(asistencia.getTutoria().getEstado())) {
             throw new BusinessException("Solo puedes calificar tutorías completadas.");
         }
 

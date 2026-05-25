@@ -4,6 +4,7 @@ import com.codespace.tutorias.DTO.Mapping.TemaMapping;
 import com.codespace.tutorias.DTO.Request.TemaRequest;
 import com.codespace.tutorias.DTO.Responsive.TemaResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.Models.Tema;
 import com.codespace.tutorias.Models.Tutoria;
 import com.codespace.tutorias.Repositories.TemaRepository;
@@ -32,7 +33,7 @@ public class TemaService {
         Tutoria tutoria = tutoriaRepository.findById(request.getIdTutoria())
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 
-        if (!"PROGRAMADA".equals(tutoria.getEstado())) {
+        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
             throw new BusinessException("Solo puedes agregar temas a tutorías programadas.");
         }
 
@@ -60,7 +61,7 @@ public class TemaService {
 
         Tutoria tutoria = tema.getTutoria();
 
-        if (!"PROGRAMADA".equals(tutoria.getEstado())) {
+        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
             throw new BusinessException("Solo puedes eliminar temas de tutorías programadas.");
         }
 

@@ -11,6 +11,6 @@ public interface TutoriaRepository extends JpaRepository<Tutoria, Integer> {
     @Query("SELECT tu FROM Tutoria tu JOIN tu.horario h JOIN h.tutor t WHERE t.matricula=:matricula AND tu.estado='PROGRAMADA'")
     List<Tutoria> findAllByMatricula(String matricula);
 
-    @Query("SELECT tu FROM Tutoria tu WHERE tu.estado='PROGRAMADA'")
+    @Query("SELECT tu FROM Tutoria tu WHERE tu.estado='PROGRAMADA' AND tu.fecha >= CURRENT_DATE")
     List<Tutoria> findAllProgramadas();
 }
