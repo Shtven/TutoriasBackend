@@ -6,6 +6,7 @@ import com.codespace.tutorias.DTO.Request.TutoriaRequest;
 import com.codespace.tutorias.DTO.Responsive.TutoriaResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.DateHelper;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Tutoria;
@@ -115,15 +116,15 @@ public class TutoriaService {
             throw new BusinessException("No puedes marcar como completada una tutoría que aún no ha iniciado.");
         }
 
-        if ("COMPLETADA".equals(tutoria.getEstado())) {
+        if (EstadosTutoria.COMPLETADA.equals(tutoria.getEstado())) {
             throw new BusinessException("La tutoría ya está marcada como completada.");
         }
 
-        if ("CANCELADA".equals(tutoria.getEstado())) {
+        if (EstadosTutoria.CANCELADA.equals(tutoria.getEstado())) {
             throw new BusinessException("No puedes completar una tutoría cancelada.");
         }
 
-        tutoria.setEstado("COMPLETADA");
+        tutoria.setEstado(EstadosTutoria.COMPLETADA);
 
         tutoriaRepository.save(tutoria);
     }
@@ -142,7 +143,7 @@ public class TutoriaService {
 
         emailService.enviarCorreoCancelacion(tutoria);
 
-        tutoria.setEstado("CANCELADA");
+        tutoria.setEstado(EstadosTutoria.CANCELADA);
 
         tutoriaRepository.save(tutoria);
     }

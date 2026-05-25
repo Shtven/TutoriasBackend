@@ -1,6 +1,7 @@
 package com.codespace.tutorias.Services;
 
 import com.codespace.tutorias.Helpers.EmailHelper;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.Models.Asistencia;
 import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Models.Tutoria;
@@ -120,10 +121,8 @@ public class EmailService {
     }
 
     private boolean esValidaParaRecordatorio(Tutoria tutoria, LocalDate hoy) {
-        return !("COMPLETADA".equalsIgnoreCase(tutoria.getEstado()) ||
-                "CANCELADA".equalsIgnoreCase(tutoria.getEstado()))
-                && tutoria.getFecha().equals(hoy)
-                && "PROGRAMADA".equalsIgnoreCase(tutoria.getEstado());
+        return tutoria.getFecha().equals(hoy)
+                && EstadosTutoria.PROGRAMADA.equalsIgnoreCase(tutoria.getEstado());
     }
 
     private String construirCorreoAlumno(Usuario usuario, Tutoria tutoria) {
