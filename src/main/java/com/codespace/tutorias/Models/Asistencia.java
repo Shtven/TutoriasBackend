@@ -21,6 +21,9 @@ public class Asistencia {
 
     private boolean asistio;
 
+    @Column(name = "calificacion")
+    private Integer calificacion;
+
 
     public Asistencia() {}
 
@@ -60,5 +63,13 @@ public class Asistencia {
 
     public void setAsistio(boolean asistio) {
         this.asistio = asistio;
+    }
+
+    public Integer getCalificacion() {
+        return calificacion;
+    }
+
+    public void setCalificacion(Integer calificacion) {
+        this.calificacion = calificacion;
     }
 }

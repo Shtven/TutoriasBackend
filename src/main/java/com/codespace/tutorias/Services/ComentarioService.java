@@ -4,6 +4,7 @@ import com.codespace.tutorias.DTO.Mapping.ComentarioMapping;
 import com.codespace.tutorias.DTO.Request.ComentarioRequest;
 import com.codespace.tutorias.DTO.Responsive.ComentarioResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.Models.Comentario;
 import com.codespace.tutorias.Models.Tutoria;
 import com.codespace.tutorias.Models.Usuario;
@@ -51,7 +52,7 @@ public class ComentarioService {
         Tutoria tutoria = tutoriaRepository.findById(request.getIdTutoria())
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 
-        if (!"PROGRAMADA".equals(tutoria.getEstado())) {
+        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
             throw new BusinessException("Solo puedes comentar tutorías programadas.");
         }
 

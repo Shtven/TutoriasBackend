@@ -52,6 +52,12 @@ public class AsistenciaController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Mis inscripciones", asistenciaService.listarPorTutorado(matricula)));
     }
 
+    @GetMapping("/historial")
+    @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
+    public ResponseEntity<?> historial(@RequestAttribute("matricula") String matricula) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Historial de tutorías", asistenciaService.listarHistorial(matricula)));
+    }
+
     @DeleteMapping("/{idAsistencia}")
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
     public ResponseEntity<?> eliminarAsistencia(

@@ -5,6 +5,7 @@ import com.codespace.tutorias.DTO.Request.AsistenciaRequest;
 import com.codespace.tutorias.DTO.Responsive.AsistenciaResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.DateHelper;
+import com.codespace.tutorias.Helpers.EstadosTutoria;
 import com.codespace.tutorias.Models.Asistencia;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Tutoria;
@@ -44,7 +45,7 @@ public class AsistenciaService {
             throw new BusinessException("La tutoría ya ha comenzado, ya no puedes inscribirte.");
         }
 
-        if (!"PROGRAMADA".equals(tutoria.getEstado())) {
+        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
             throw new BusinessException("La tutoría no está disponible");
         }
 
@@ -96,6 +97,11 @@ public class AsistenciaService {
 
     public List<AsistenciaResponsive> listarPorTutorado(String matricula) {
         return asistenciaRepository.findByUsuarioMatricula(matricula)
+                .stream().map(asistenciaMapping::toDTO).toList();
+    }
+
+    public List<AsistenciaResponsive> listarHistorial(String matricula) {
+        return asistenciaRepository.findHistorialByMatricula(matricula)
                 .stream().map(asistenciaMapping::toDTO).toList();
     }
 
