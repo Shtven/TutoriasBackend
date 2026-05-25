@@ -21,4 +21,20 @@ public interface AsistenciaRepository extends JpaRepository<Asistencia, Integer>
     @Query("SELECT a FROM Asistencia a JOIN FETCH a.usuario WHERE a.usuario.matricula = :matricula")
     List<Asistencia> findByUsuarioMatricula(@Param("matricula") String matricula);
 
+    @Query("SELECT a FROM Asistencia a " +
+            "JOIN FETCH a.tutoria t " +
+            "JOIN FETCH t.horario h " +
+            "JOIN FETCH h.tutor " +
+            "JOIN FETCH t.materia " +
+            "WHERE a.usuario.matricula = :matricula AND t.estado = 'COMPLETADA'")
+    List<Asistencia> findHistorialByMatricula(@Param("matricula") String matricula);
+
+    @Query("SELECT AVG(a.calificacion) FROM Asistencia a " +
+            "WHERE a.tutoria.horario.tutor.matricula = :matricula AND a.calificacion IS NOT NULL")
+    Double calcularPromedioTutor(@Param("matricula") String matricula);
+
+    @Query("SELECT COUNT(a) FROM Asistencia a " +
+            "WHERE a.tutoria.horario.tutor.matricula = :matricula AND a.calificacion IS NOT NULL")
+    long contarCalificacionesTutor(@Param("matricula") String matricula);
+
 }

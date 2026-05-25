@@ -21,11 +21,13 @@ public class AsistenciaMapping {
 
     public AsistenciaResponsive toDTO(Asistencia asistencia) {
         AsistenciaResponsive dto = new AsistenciaResponsive();
+        dto.setIdAsistencia(asistencia.getIdAsistencia());
         dto.setMatricula(asistencia.getUsuario().getMatricula());
         dto.setNombre(asistencia.getUsuario().getNombre()
                 + " " + asistencia.getUsuario().getApellidoP()
                 + " " + asistencia.getUsuario().getApellidoM());
         dto.setAsistio(asistencia.isAsistio());
+        dto.setCalificacion(asistencia.getCalificacion());
 
         return dto;
     }

@@ -99,6 +99,11 @@ public class AsistenciaService {
                 .stream().map(asistenciaMapping::toDTO).toList();
     }
 
+    public List<AsistenciaResponsive> listarHistorial(String matricula) {
+        return asistenciaRepository.findHistorialByMatricula(matricula)
+                .stream().map(asistenciaMapping::toDTO).toList();
+    }
+
     public List<AsistenciaResponsive> listarAsistencias(int idTutoria) {
         return asistenciaRepository.findByTutoriaIdTutoria(idTutoria)
                 .stream().map(asistenciaMapping::toDTO).toList();
