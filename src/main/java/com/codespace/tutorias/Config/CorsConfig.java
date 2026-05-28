@@ -13,17 +13,19 @@ public class CorsConfig {
 
     // Lista separada por comas en .env / application.properties.
     // Spring inyecta cada elemento como un item de la lista.
-    @Value("${cors.allowed-origin-patterns}")
-    private List<String> allowedOriginPatterns;
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // 🌐 Usamos allowedOriginPatterns porque allowCredentials=true
-        // no admite "*" literal en allowedOrigins.
-        config.setAllowedOriginPatterns(allowedOriginPatterns);
+        // 🌐 Origenes exactos (dominio fijo). Con allowCredentials=true no se
+        // admite "*", por eso se listan los dominios permitidos.
+        config.setAllowedOrigins(
+                allowedOrigins.stream().map(String::trim).toList()
+        );
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"

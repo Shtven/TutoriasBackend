@@ -466,6 +466,6 @@ Definidos en [`EstadosTutoria.java`](../src/main/java/com/codespace/tutorias/Hel
 ## Notas para el frontend
 
 - Toda petición protegida debe llevar `Authorization: Bearer <token>` con el JWT del `signin`.
-- CORS abierto en dev (`CORS_ALLOWED_ORIGIN_PATTERNS=*`); en prod hay que listar los dominios reales separados por coma.
+- CORS restringido a orígenes exactos vía `CORS_ALLOWED_ORIGINS` (lista separada por coma, p.ej. `http://localhost:5173,https://mi-app.onrender.com`). Con `allowCredentials=true` no se admite `*`.
 - Fechas: `LocalDate` (`yyyy-MM-dd`); horas: `LocalTime` (`HH:mm:ss`).
 - El campo `idAsistencia` ahora viene en `AsistenciaResponsive` — necesario para llamar a `POST /calificaciones`.

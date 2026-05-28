@@ -63,7 +63,7 @@ public class EmailService {
                         construirCorreoTutor(tutor, tutoria)
                 );
 
-                tutoria.setEstado("A PUNTO DE INICIAR");
+                tutoria.setEstado(EstadosTutoria.POR_INICIAR);
                 tutoriaRepository.save(tutoria);
             }
         }
