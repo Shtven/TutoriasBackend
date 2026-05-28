@@ -1,0 +1,13 @@
+target/
+.git/
+.idea/
+.mvn/
+*.iml
+run.log
+.env
+.env.local
+*.env
+!.env.example
+db/
+HELP.md
+*.md
