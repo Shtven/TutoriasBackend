@@ -15,5 +15,12 @@ public final class EstadosTutoria {
     public static final String COMPLETADA = "COMPLETADA";
     public static final String CANCELADA = "CANCELADA";
 
+    /**
+     * Estado transitorio que el job de recordatorios asigna ~15 min antes
+     * del inicio. No esta en el SRS; se centraliza aqui para documentarlo.
+     * Una sesion en este estado ya no aparece en /tutoria/disponibles.
+     */
+    public static final String POR_INICIAR = "A PUNTO DE INICIAR";
+
     private EstadosTutoria() {}
 }
