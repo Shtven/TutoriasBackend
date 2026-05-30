@@ -13,6 +13,8 @@ import com.codespace.tutorias.Models.Usuario;
 import com.codespace.tutorias.Repositories.AsistenciaRepository;
 import com.codespace.tutorias.Repositories.TutoriaRepository;
 import com.codespace.tutorias.Repositories.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,8 @@ import java.util.Optional;
 
 @Service
 public class AsistenciaService {
+
+    private static final Logger log = LoggerFactory.getLogger(AsistenciaService.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -75,9 +79,17 @@ public class AsistenciaService {
             throw new BusinessException("Ya existe una asistencia para esta tutoría");
         }
 
-        emailService.enviarCorreoConfirmacion(tutoria, usuario);
-
         asistenciaRepository.save(asistenciaMapping.toEntity(tutoria, usuario));
+
+        // El envio de correo no debe bloquear la inscripcion: si el SMTP falla
+        // (p.ej. Render bloqueando puertos salientes), la asistencia ya quedo
+        // persistida y solo se pierde la notificacion.
+        try {
+            emailService.enviarCorreoConfirmacion(tutoria, usuario);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar correo de confirmacion a {}: {}",
+                    usuario.getCorreo(), e.getMessage());
+        }
     }
 
     public void eliminarAsistencia(int idAsistencia, String matricula) {
