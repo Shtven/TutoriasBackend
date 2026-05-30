@@ -3,6 +3,7 @@ package com.codespace.tutorias.Services;
 import com.codespace.tutorias.DTO.Mapping.AsistenciaMapping;
 import com.codespace.tutorias.DTO.Request.AsistenciaRequest;
 import com.codespace.tutorias.DTO.Responsive.AsistenciaResponsive;
+import com.codespace.tutorias.DTO.Responsive.MisInscripcionResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.DateHelper;
 import com.codespace.tutorias.Helpers.EstadosTutoria;
@@ -107,14 +108,14 @@ public class AsistenciaService {
         asistenciaRepository.delete(asistencia);
     }
 
-    public List<AsistenciaResponsive> listarPorTutorado(String matricula) {
+    public List<MisInscripcionResponsive> listarPorTutorado(String matricula) {
         return asistenciaRepository.findByUsuarioMatricula(matricula)
-                .stream().map(asistenciaMapping::toDTO).toList();
+                .stream().map(asistenciaMapping::toMisInscripcionDTO).toList();
     }
 
-    public List<AsistenciaResponsive> listarHistorial(String matricula) {
+    public List<MisInscripcionResponsive> listarHistorial(String matricula) {
         return asistenciaRepository.findHistorialByMatricula(matricula)
-                .stream().map(asistenciaMapping::toDTO).toList();
+                .stream().map(asistenciaMapping::toMisInscripcionDTO).toList();
     }
 
     public List<AsistenciaResponsive> listarAsistencias(int idTutoria) {
