@@ -5,6 +5,7 @@ import com.codespace.tutorias.DTO.Request.HorarioRequest;
 import com.codespace.tutorias.DTO.Responsive.HorarioResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.DateHelper;
+import com.codespace.tutorias.Helpers.Dia;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Usuario;
@@ -36,8 +37,16 @@ public class HorarioService {
             throw new BusinessException("La matricula no existe");
         }
 
+        // Normaliza el dia recibido (uppercase + sin acentos + validacion).
+        // Se reescribe en el request para que el mapper persista la forma canonica.
+        String diaNormalizado = Dia.normalizar(request.getDia());
+        request.setDia(diaNormalizado);
+
         for(Horario h: horarioRepository.findByMatricula(matricula)){
-            if(request.getDia().equals(h.getDia()) &&
+            // Comparacion defensiva: normaliza tambien el lado almacenado por si
+            // hay registros legacy con capitalizacion distinta.
+            String diaExistente = Dia.normalizar(h.getDia());
+            if(diaNormalizado.equals(diaExistente) &&
                     DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
                             request.getHoraInicio(), request.getHoraFin())){
                 throw new BusinessException("Ya tienes un horario con estos datos.");
@@ -94,9 +103,13 @@ public class HorarioService {
             throw new BusinessException("Solo el tutor dueño puede modificar este horario.");
         }
 
+        String diaNormalizado = Dia.normalizar(request.getDia());
+        request.setDia(diaNormalizado);
+
         for(Horario h: horarioRepository.findByMatricula(matricula)){
             if (h.getIdHorario() == idHorario) continue;
-            if(request.getDia().equals(h.getDia()) && DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
+            String diaExistente = Dia.normalizar(h.getDia());
+            if(diaNormalizado.equals(diaExistente) && DateHelper.haySolapamiento(h.getHoraInicio(), h.getHoraFin(),
                     request.getHoraInicio(), request.getHoraFin())){
                  throw new BusinessException("Ya tienes un horario con estos datos.");
              }
