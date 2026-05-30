@@ -11,27 +11,32 @@ import java.util.Map;
 @Component
 public class EmailHelper {
 
-    private static final String RESEND_ENDPOINT = "https://api.resend.com/emails";
+    private static final String SENDGRID_ENDPOINT = "https://api.sendgrid.com/v3/mail/send";
 
     private final RestClient restClient = RestClient.create();
 
-    @Value("${resend.api-key}")
+    @Value("${sendgrid.api-key}")
     private String apiKey;
 
-    @Value("${resend.from}")
+    @Value("${sendgrid.from}")
     private String from;
 
     public void enviarCorreo(String destinatario, String asunto, String cuerpoHtml) {
 
         Map<String, Object> body = Map.of(
-                "from", from,
-                "to", List.of(destinatario),
+                "personalizations", List.of(Map.of(
+                        "to", List.of(Map.of("email", destinatario))
+                )),
+                "from", Map.of("email", from),
                 "subject", asunto,
-                "html", cuerpoHtml
+                "content", List.of(Map.of(
+                        "type", "text/html",
+                        "value", cuerpoHtml
+                ))
         );
 
         restClient.post()
-                .uri(RESEND_ENDPOINT)
+                .uri(SENDGRID_ENDPOINT)
                 .header("Authorization", "Bearer " + apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
