@@ -18,7 +18,7 @@ public class TemaController {
     @PostMapping
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> crearTema(
-            @RequestAttribute("matricula") String matricula,
+            @RequestAttribute("matricula") Integer matricula,
             @RequestBody TemaRequest request) {
 
         temaService.crearTema(request, matricula);
@@ -38,7 +38,7 @@ public class TemaController {
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> eliminarTema(
             @PathVariable int idTema,
-            @RequestAttribute("matricula") String matricula) {
+            @RequestAttribute("matricula") Integer matricula) {
 
         temaService.eliminarTema(idTema, matricula);
 

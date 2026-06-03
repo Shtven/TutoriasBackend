@@ -17,7 +17,7 @@ public class AsistenciaController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> crearAsistencia(@RequestAttribute("matricula") String matricula, @RequestBody AsistenciaRequest request) {
+    public ResponseEntity<?> crearAsistencia(@RequestAttribute("matricula") Integer matricula, @RequestBody AsistenciaRequest request) {
 
         asistenciaService.crearAsistencia(request, matricula);
 
@@ -48,13 +48,13 @@ public class AsistenciaController {
 
     @GetMapping("/mis-inscripciones")
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> misInscripciones(@RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<?> misInscripciones(@RequestAttribute("matricula") Integer matricula) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Mis inscripciones", asistenciaService.listarPorTutorado(matricula)));
     }
 
     @GetMapping("/historial")
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> historial(@RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<?> historial(@RequestAttribute("matricula") Integer matricula) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Historial de tutorías", asistenciaService.listarHistorial(matricula)));
     }
 
@@ -62,7 +62,7 @@ public class AsistenciaController {
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
     public ResponseEntity<?> eliminarAsistencia(
             @PathVariable int idAsistencia,
-            @RequestAttribute("matricula") String matricula) {
+            @RequestAttribute("matricula") Integer matricula) {
 
         asistenciaService.eliminarAsistencia(idAsistencia, matricula);
 

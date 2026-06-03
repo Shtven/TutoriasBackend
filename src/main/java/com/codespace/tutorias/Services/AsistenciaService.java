@@ -38,7 +38,7 @@ public class AsistenciaService {
     @Autowired
     private EmailService emailService;
 
-    public void crearAsistencia(AsistenciaRequest request, String matricula) {
+    public void crearAsistencia(AsistenciaRequest request, Integer matricula) {
 
         Usuario usuario = usuarioRepository.findById(matricula)
                 .orElseThrow(() -> new BusinessException("El usuario no existe"));
@@ -93,7 +93,7 @@ public class AsistenciaService {
         }
     }
 
-    public void eliminarAsistencia(int idAsistencia, String matricula) {
+    public void eliminarAsistencia(int idAsistencia, Integer matricula) {
 
         Asistencia asistencia = asistenciaRepository.findById(idAsistencia)
                 .orElseThrow(() -> new BusinessException("La asistencia no existe"));
@@ -108,12 +108,12 @@ public class AsistenciaService {
         asistenciaRepository.delete(asistencia);
     }
 
-    public List<MisInscripcionResponsive> listarPorTutorado(String matricula) {
+    public List<MisInscripcionResponsive> listarPorTutorado(Integer matricula) {
         return asistenciaRepository.findByUsuarioMatricula(matricula)
                 .stream().map(asistenciaMapping::toMisInscripcionDTO).toList();
     }
 
-    public List<MisInscripcionResponsive> listarHistorial(String matricula) {
+    public List<MisInscripcionResponsive> listarHistorial(Integer matricula) {
         return asistenciaRepository.findHistorialByMatricula(matricula)
                 .stream().map(asistenciaMapping::toMisInscripcionDTO).toList();
     }

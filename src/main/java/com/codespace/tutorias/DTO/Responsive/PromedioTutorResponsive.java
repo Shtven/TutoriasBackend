@@ -2,25 +2,25 @@ package com.codespace.tutorias.DTO.Responsive;
 
 public class PromedioTutorResponsive {
 
-    private String matricula;
+    private Integer matricula;
     private String nombre;
     private Double promedio;
     private long totalCalificaciones;
 
     public PromedioTutorResponsive() {}
 
-    public PromedioTutorResponsive(String matricula, String nombre, Double promedio, long totalCalificaciones) {
+    public PromedioTutorResponsive(Integer matricula, String nombre, Double promedio, long totalCalificaciones) {
         this.matricula = matricula;
         this.nombre = nombre;
         this.promedio = promedio;
         this.totalCalificaciones = totalCalificaciones;
     }
 
-    public String getMatricula() {
+    public Integer getMatricula() {
         return matricula;
     }
 
-    public void setMatricula(String matricula) {
+    public void setMatricula(Integer matricula) {
         this.matricula = matricula;
     }
 

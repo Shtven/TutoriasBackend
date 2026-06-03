@@ -4,13 +4,13 @@ public class ComentarioResponsive {
 
     private int idComentario;
     private int idTutoria;
-    private String matricula;
+    private Integer matricula;
     private String nombre;
     private String comentario;
 
     public ComentarioResponsive() {}
 
-    public ComentarioResponsive(int idComentario, int idTutoria, String matricula, String nombre, String comentario) {
+    public ComentarioResponsive(int idComentario, int idTutoria, Integer matricula, String nombre, String comentario) {
         this.idComentario = idComentario;
         this.idTutoria = idTutoria;
         this.matricula = matricula;
@@ -34,11 +34,11 @@ public class ComentarioResponsive {
         this.idTutoria = idTutoria;
     }
 
-    public String getMatricula() {
+    public Integer getMatricula() {
         return matricula;
     }
 
-    public void setMatricula(String matricula) {
+    public void setMatricula(Integer matricula) {
         this.matricula = matricula;
     }
 
