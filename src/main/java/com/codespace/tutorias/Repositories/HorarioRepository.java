@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface HorarioRepository extends JpaRepository<Horario, Integer> {
 
     @Query("SELECT h FROM Horario h JOIN h.tutor t WHERE t.matricula=:matricula")
-    List<Horario> findByMatricula(String matricula);
+    List<Horario> findByMatricula(Integer matricula);
 }

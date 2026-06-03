@@ -13,5 +13,5 @@ public interface ComentarioRepository extends JpaRepository<Comentario, Integer>
     List<Comentario> findByTutoriaIdTutoria(@Param("idTutoria") int idTutoria);
 
     @Query("SELECT c FROM Comentario c JOIN FETCH c.tutoria WHERE c.usuario.matricula = :matricula ORDER BY c.idComentario DESC")
-    List<Comentario> findByUsuarioMatricula(@Param("matricula") String matricula);
+    List<Comentario> findByUsuarioMatricula(@Param("matricula") Integer matricula);
 }

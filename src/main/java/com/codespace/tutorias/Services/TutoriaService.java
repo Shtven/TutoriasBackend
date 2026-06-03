@@ -52,7 +52,7 @@ public class TutoriaService {
         tutoriaRepository.save(tutoria);
     }
 
-    public List<TutoriaResponsive> obtenerTutorias(String matricula) {
+    public List<TutoriaResponsive> obtenerTutorias(Integer matricula) {
         List<Tutoria> tutorias = tutoriaRepository.findAllByMatricula(matricula);
         List<TutoriaResponsive> tutoriasResponse = new ArrayList<>();
         for(Tutoria t: tutorias){
@@ -87,7 +87,7 @@ public class TutoriaService {
         return tutoriaResponse;
     }
 
-    public void actualizarTutoria(int idTutoria, ActualizarTutoriaRequest request, String matricula) {
+    public void actualizarTutoria(int idTutoria, ActualizarTutoriaRequest request, Integer matricula) {
         Horario horario = horarioRepository.findById(request.getIdHorario())
                 .orElseThrow(() -> new BusinessException("El horario no existe"));
         Tutoria tutoriaExistente = tutoriaRepository.findById(idTutoria)
@@ -104,7 +104,7 @@ public class TutoriaService {
 
     }
 
-    public void completarTutoria(int id, String matricula){
+    public void completarTutoria(int id, Integer matricula){
         Tutoria tutoria = tutoriaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 
@@ -129,7 +129,7 @@ public class TutoriaService {
         tutoriaRepository.save(tutoria);
     }
 
-    public void eliminarTutoria(int idTutoria, String matricula){
+    public void eliminarTutoria(int idTutoria, Integer matricula){
         Tutoria tutoria = tutoriaRepository.findById(idTutoria)
                 .orElseThrow(() -> new BusinessException("La tutoría no existe"));
 

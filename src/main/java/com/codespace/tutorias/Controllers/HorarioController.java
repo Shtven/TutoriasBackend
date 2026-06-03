@@ -18,14 +18,14 @@ public class HorarioController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> crearHorario(@RequestAttribute("matricula") String matricula, @RequestBody HorarioRequest horarioRequest){
+    public ResponseEntity<?> crearHorario(@RequestAttribute("matricula") Integer matricula, @RequestBody HorarioRequest horarioRequest){
         horarioService.crearHorario(horarioRequest, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Horario creado.", null));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> actualizarHorario(@RequestAttribute("matricula") String matricula, @PathVariable int id, @RequestBody HorarioRequest horario){
+    public ResponseEntity<?> actualizarHorario(@RequestAttribute("matricula") Integer matricula, @PathVariable int id, @RequestBody HorarioRequest horario){
         horarioService.modificarHorario(id, horario, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Horario actualizado.", null));
     }
@@ -34,7 +34,7 @@ public class HorarioController {
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> eliminarHorario(
             @PathVariable int id,
-            @RequestAttribute("matricula") String matricula){
+            @RequestAttribute("matricula") Integer matricula){
         horarioService.eliminarHorario(id, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Horario eliminado.", null));
     }
@@ -47,7 +47,7 @@ public class HorarioController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> listarHorarios(@RequestAttribute("matricula") String matricula){
+    public ResponseEntity<?> listarHorarios(@RequestAttribute("matricula") Integer matricula){
         return ResponseEntity.ok(new ApiResponse<>(true, "Horarios", horarioService.listarHorarios(matricula)));
     }
 }

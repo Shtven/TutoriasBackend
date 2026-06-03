@@ -18,7 +18,7 @@ public class CalificacionController {
     @PostMapping
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
     public ResponseEntity<?> calificar(
-            @RequestAttribute("matricula") String matricula,
+            @RequestAttribute("matricula") Integer matricula,
             @RequestBody CalificacionRequest request) {
 
         calificacionService.calificarTutoria(request, matricula);
@@ -28,7 +28,7 @@ public class CalificacionController {
 
     @GetMapping("/promedio/{matricula}")
     @PreAuthorize("hasAnyRole('TUTOR', 'TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> promedioPorMatricula(@PathVariable String matricula) {
+    public ResponseEntity<?> promedioPorMatricula(@PathVariable Integer matricula) {
 
         return ResponseEntity.ok(new ApiResponse<>(
                 true, "Promedio del tutor", calificacionService.obtenerPromedioTutor(matricula)));
@@ -36,7 +36,7 @@ public class CalificacionController {
 
     @GetMapping("/promedio")
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> miPromedio(@RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<?> miPromedio(@RequestAttribute("matricula") Integer matricula) {
 
         return ResponseEntity.ok(new ApiResponse<>(
                 true, "Mi promedio", calificacionService.obtenerPromedioTutor(matricula)));
