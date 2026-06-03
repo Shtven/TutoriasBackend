@@ -18,7 +18,7 @@ public class JWTUtils {
     private long expiration;
 
 
-    public String generateToken(String matricula, String rol) {
+    public String generateToken(Integer matricula, String rol) {
 
         return Jwts.builder()
                 .claim("matricula", matricula)

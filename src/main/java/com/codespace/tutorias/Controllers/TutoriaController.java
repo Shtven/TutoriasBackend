@@ -27,7 +27,7 @@ public class TutoriaController {
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> eliminarTutoria(
             @PathVariable int id,
-            @RequestAttribute("matricula") String matricula) {
+            @RequestAttribute("matricula") Integer matricula) {
         tutoriaService.eliminarTutoria(id, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria cancelada.", null));
     }
@@ -37,7 +37,7 @@ public class TutoriaController {
     public ResponseEntity<?> actualizarTutoria(
             @PathVariable int id,
             @RequestBody ActualizarTutoriaRequest tutoriaRequest,
-            @RequestAttribute("matricula") String matricula) {
+            @RequestAttribute("matricula") Integer matricula) {
         tutoriaService.actualizarTutoria(id, tutoriaRequest, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria actualizada.", null));
     }
@@ -50,7 +50,7 @@ public class TutoriaController {
 
     @GetMapping("/mis-tutorias")
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> listarTutorias(@RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<?> listarTutorias(@RequestAttribute("matricula") Integer matricula) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Mis tutorias", tutoriaService.obtenerTutorias(matricula)));
     }
 
@@ -64,7 +64,7 @@ public class TutoriaController {
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
     public ResponseEntity<?> completarTutoria(
             @PathVariable int id,
-            @RequestAttribute("matricula") String matricula) {
+            @RequestAttribute("matricula") Integer matricula) {
         tutoriaService.completarTutoria(id, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Tutoria completa.", null));
     }

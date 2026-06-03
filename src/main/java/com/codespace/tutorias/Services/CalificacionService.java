@@ -22,7 +22,7 @@ public class CalificacionService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    public void calificarTutoria(CalificacionRequest request, String matricula) {
+    public void calificarTutoria(CalificacionRequest request, Integer matricula) {
 
         if (request.getCalificacion() < MIN_CALIFICACION || request.getCalificacion() > MAX_CALIFICACION) {
             throw new BusinessException("La calificación debe estar entre 1 y 5.");
@@ -47,7 +47,7 @@ public class CalificacionService {
         asistenciaRepository.save(asistencia);
     }
 
-    public PromedioTutorResponsive obtenerPromedioTutor(String matricula) {
+    public PromedioTutorResponsive obtenerPromedioTutor(Integer matricula) {
 
         Usuario tutor = usuarioRepository.findById(matricula)
                 .orElseThrow(() -> new BusinessException("El tutor no existe"));

@@ -2,14 +2,14 @@ package com.codespace.tutorias.DTO.Responsive;
 
 public class AsistenciaResponsive {
     private int idAsistencia;
-    private String matricula;
+    private Integer matricula;
     private String nombre;
     private Boolean asistio;
     private Integer calificacion;
 
     public AsistenciaResponsive() {}
 
-    public AsistenciaResponsive(int idAsistencia, String matricula, String nombre, Boolean asistio, Integer calificacion) {
+    public AsistenciaResponsive(int idAsistencia, Integer matricula, String nombre, Boolean asistio, Integer calificacion) {
         this.idAsistencia = idAsistencia;
         this.matricula = matricula;
         this.nombre = nombre;
@@ -33,11 +33,11 @@ public class AsistenciaResponsive {
         this.calificacion = calificacion;
     }
 
-    public String getMatricula() {
+    public Integer getMatricula() {
         return matricula;
     }
 
-    public void setMatricula(String matricula) {
+    public void setMatricula(Integer matricula) {
         this.matricula = matricula;
     }
 

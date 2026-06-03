@@ -14,12 +14,12 @@ public interface AsistenciaRepository extends JpaRepository<Asistencia, Integer>
     List<Asistencia> findByTutoriaIdTutoria(@Param("idTutoria") int idTutoria);
 
     @Query("SELECT a FROM Asistencia a JOIN FETCH a.usuario WHERE a.usuario.matricula = :matricula AND a.tutoria.idTutoria = :idTutoria")
-    Optional<Asistencia> findByMatriculaTutoria(@Param("matricula") String matricula, @Param("idTutoria") int idTutoria);
+    Optional<Asistencia> findByMatriculaTutoria(@Param("matricula") Integer matricula, @Param("idTutoria") int idTutoria);
 
     long countByTutoriaIdTutoria(int idTutoria);
 
     @Query("SELECT a FROM Asistencia a JOIN FETCH a.usuario WHERE a.usuario.matricula = :matricula")
-    List<Asistencia> findByUsuarioMatricula(@Param("matricula") String matricula);
+    List<Asistencia> findByUsuarioMatricula(@Param("matricula") Integer matricula);
 
     @Query("SELECT a FROM Asistencia a " +
             "JOIN FETCH a.tutoria t " +
@@ -27,14 +27,14 @@ public interface AsistenciaRepository extends JpaRepository<Asistencia, Integer>
             "JOIN FETCH h.tutor " +
             "JOIN FETCH t.materia " +
             "WHERE a.usuario.matricula = :matricula AND t.estado = 'COMPLETADA'")
-    List<Asistencia> findHistorialByMatricula(@Param("matricula") String matricula);
+    List<Asistencia> findHistorialByMatricula(@Param("matricula") Integer matricula);
 
     @Query("SELECT AVG(a.calificacion) FROM Asistencia a " +
             "WHERE a.tutoria.horario.tutor.matricula = :matricula AND a.calificacion IS NOT NULL")
-    Double calcularPromedioTutor(@Param("matricula") String matricula);
+    Double calcularPromedioTutor(@Param("matricula") Integer matricula);
 
     @Query("SELECT COUNT(a) FROM Asistencia a " +
             "WHERE a.tutoria.horario.tutor.matricula = :matricula AND a.calificacion IS NOT NULL")
-    long contarCalificacionesTutor(@Param("matricula") String matricula);
+    long contarCalificacionesTutor(@Param("matricula") Integer matricula);
 
 }

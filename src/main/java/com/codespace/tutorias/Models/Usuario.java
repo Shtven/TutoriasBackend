@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 public class Usuario {
 
     @Id
-    private String matricula;
+    private Integer matricula;
 
     private String nombre;
     private String apellidoP;
@@ -23,7 +23,7 @@ public class Usuario {
 
     public Usuario() {}
 
-    public Usuario(String matricula, String nombre, String correo, String pwd, Rol rol) {
+    public Usuario(Integer matricula, String nombre, String correo, String pwd, Rol rol) {
         this.matricula = matricula;
         this.nombre = nombre;
         this.correo = correo;
@@ -32,11 +32,11 @@ public class Usuario {
     }
 
 
-    public String getMatricula() {
+    public Integer getMatricula() {
         return matricula;
     }
 
-    public void setMatricula(String matricula) {
+    public void setMatricula(Integer matricula) {
         this.matricula = matricula;
     }
 

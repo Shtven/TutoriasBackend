@@ -31,7 +31,7 @@ public class HorarioService {
     @Autowired
     private HorarioMapping  horarioMapping;
 
-    public void crearHorario(HorarioRequest request, String matricula) {
+    public void crearHorario(HorarioRequest request, Integer matricula) {
         Optional<Usuario> usuario = usuarioRepository.findById(matricula);
         if (!usuario.isPresent()) {
             throw new BusinessException("La matricula no existe");
@@ -58,7 +58,7 @@ public class HorarioService {
         horarioRepository.save(newHorario);
     }
 
-    public List<HorarioResponsive> listarHorarios(String matricula) {
+    public List<HorarioResponsive> listarHorarios(Integer matricula) {
         return horarioRepository.findByMatricula(matricula).stream().map(horarioMapping::toDTO).toList();
     }
 
@@ -72,7 +72,7 @@ public class HorarioService {
         return horarioMapping.toDTO(horario.get());
     }
 
-    public void eliminarHorario(int idHorario, String matricula) {
+    public void eliminarHorario(int idHorario, Integer matricula) {
         Horario horario = horarioRepository.findById(idHorario)
                 .orElseThrow(() -> new BusinessException("El horario no existe"));
 
@@ -87,7 +87,7 @@ public class HorarioService {
         horarioRepository.deleteById(idHorario);
     }
 
-    public void modificarHorario(int idHorario, HorarioRequest request, String matricula) {
+    public void modificarHorario(int idHorario, HorarioRequest request, Integer matricula) {
         Optional<Usuario> usuario = usuarioRepository.findById(matricula);
         Optional<Horario> horario = horarioRepository.findById(idHorario);
 

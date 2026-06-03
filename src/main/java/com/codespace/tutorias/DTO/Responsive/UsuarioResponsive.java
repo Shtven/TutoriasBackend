@@ -1,7 +1,7 @@
 package com.codespace.tutorias.DTO.Responsive;
 
 public class UsuarioResponsive {
-    private String matricula;
+    private Integer matricula;
     private String nombre;
     private String apellidoP;
     private String apellidoM;
@@ -9,11 +9,11 @@ public class UsuarioResponsive {
 
     public UsuarioResponsive(){}
 
-    public String getMatricula() {
+    public Integer getMatricula() {
         return matricula;
     }
 
-    public void setMatricula(String matricula) {
+    public void setMatricula(Integer matricula) {
         this.matricula = matricula;
     }
 
