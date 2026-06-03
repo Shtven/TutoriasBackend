@@ -18,7 +18,7 @@ public class ComentarioController {
     @PostMapping
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
     public ResponseEntity<?> crearComentario(
-            @RequestAttribute("matricula") String matricula,
+            @RequestAttribute("matricula") Integer matricula,
             @RequestBody ComentarioRequest request) {
 
         comentarioService.crearComentario(request, matricula);
@@ -36,7 +36,7 @@ public class ComentarioController {
 
     @GetMapping("/mis-comentarios")
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> misComentarios(@RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<?> misComentarios(@RequestAttribute("matricula") Integer matricula) {
 
         return ResponseEntity.ok(new ApiResponse<>(
                 true, "Mis comentarios", comentarioService.listarPorTutorado(matricula)));
@@ -46,7 +46,7 @@ public class ComentarioController {
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
     public ResponseEntity<?> eliminarComentario(
             @PathVariable int idComentario,
-            @RequestAttribute("matricula") String matricula) {
+            @RequestAttribute("matricula") Integer matricula) {
 
         comentarioService.eliminarComentario(idComentario, matricula);
 

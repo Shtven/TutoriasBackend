@@ -18,9 +18,9 @@ public class UserMapping {
     @Autowired
     private JWTUtils jwtUtils;
 
-    public Usuario toEntity(RegisterRequest request, Rol rol){
+    public Usuario toEntity(RegisterRequest request, Integer matricula, Rol rol){
         Usuario entity = new Usuario();
-        entity.setMatricula(request.getMatricula());
+        entity.setMatricula(matricula);
         entity.setNombre(request.getNombre());
         entity.setApellidoP(request.getApellidoP());
         entity.setApellidoM(request.getApellidoM());

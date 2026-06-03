@@ -24,7 +24,7 @@ public class TemaService {
     @Autowired
     private TemaMapping temaMapping;
 
-    public void crearTema(TemaRequest request, String matricula) {
+    public void crearTema(TemaRequest request, Integer matricula) {
 
         if (request.getTema() == null || request.getTema().trim().isEmpty()) {
             throw new BusinessException("El tema no puede estar vacío.");
@@ -54,7 +54,7 @@ public class TemaService {
                 .stream().map(temaMapping::toDTO).toList();
     }
 
-    public void eliminarTema(int idTema, String matricula) {
+    public void eliminarTema(int idTema, Integer matricula) {
 
         Tema tema = temaRepository.findById(idTema)
                 .orElseThrow(() -> new BusinessException("El tema no existe"));

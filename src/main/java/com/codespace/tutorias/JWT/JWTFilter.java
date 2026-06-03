@@ -46,7 +46,7 @@ public class JWTFilter extends OncePerRequestFilter {
                         .getBody();
 
                 String rol = claims.get("rol", String.class);
-                String matricula = claims.get("matricula", String.class);
+                Integer matricula = claims.get("matricula", Integer.class);
 
                 request.setAttribute("matricula", matricula);
                 request.setAttribute("rol", rol);

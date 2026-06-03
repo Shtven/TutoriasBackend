@@ -33,7 +33,7 @@ public class ComentarioService {
     @Autowired
     private ComentarioMapping comentarioMapping;
 
-    public void crearComentario(ComentarioRequest request, String matricula) {
+    public void crearComentario(ComentarioRequest request, Integer matricula) {
 
         if (request.getComentario() == null || request.getComentario().trim().isEmpty()) {
             throw new BusinessException("El comentario no puede estar vacío.");
@@ -73,12 +73,12 @@ public class ComentarioService {
                 .stream().map(comentarioMapping::toDTO).toList();
     }
 
-    public List<ComentarioResponsive> listarPorTutorado(String matricula) {
+    public List<ComentarioResponsive> listarPorTutorado(Integer matricula) {
         return comentarioRepository.findByUsuarioMatricula(matricula)
                 .stream().map(comentarioMapping::toDTO).toList();
     }
 
-    public void eliminarComentario(int idComentario, String matricula) {
+    public void eliminarComentario(int idComentario, Integer matricula) {
 
         Comentario comentario = comentarioRepository.findById(idComentario)
                 .orElseThrow(() -> new BusinessException("El comentario no existe"));
