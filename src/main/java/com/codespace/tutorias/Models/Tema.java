@@ -1,6 +1,5 @@
 package com.codespace.tutorias.Models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -9,22 +8,19 @@ public class Tema {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_tema")
     private int idTema;
 
-    @Column(name = "tema", nullable = false)
     private String tema;
 
-    @JsonBackReference
     @ManyToOne
-    @JoinColumn(name = "id_tutoria")
-    private Tutoria tutoria;
+    @JoinColumn(name = "id_horario")
+    private Horario horario;
 
     public Tema() {}
 
-    public Tema(String tema, Tutoria tutoria) {
+    public Tema(String tema, Horario horario) {
         this.tema = tema;
-        this.tutoria = tutoria;
+        this.horario = horario;
     }
 
     public int getIdTema() {
@@ -43,11 +39,11 @@ public class Tema {
         this.tema = tema;
     }
 
-    public Tutoria getTutoria() {
-        return tutoria;
+    public Horario getHorario() {
+        return horario;
     }
 
-    public void setTutoria(Tutoria tutoria) {
-        this.tutoria = tutoria;
+    public void setHorario(Horario horario) {
+        this.horario = horario;
     }
 }

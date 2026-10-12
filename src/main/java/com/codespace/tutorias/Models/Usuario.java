@@ -5,38 +5,35 @@ import jakarta.persistence.*;
 @Entity
 public class Usuario {
 
+    /** Con prefijo S: "S23014587". Los admins pueden tener otro formato (asignados por BD). */
     @Id
-    private Integer matricula;
+    private String matricula;
 
     private String nombre;
-    private String apellidoP;
-    private String apellidoM;
-
-    @Column(unique = true)
+    private String apellidos;
     private String correo;
 
-    private String pwd;
-
     @ManyToOne
-    @JoinColumn(name = "rol")
+    @JoinColumn(name = "id_rol")
     private Rol rol;
+
+    /** MICROSOFT | GOOGLE. Null = pre-registro (se liga en el primer login). */
+    private String proveedor;
+
+    /** Claim 'sub' del proveedor. */
+    private String idExterno;
 
     public Usuario() {}
 
-    public Usuario(Integer matricula, String nombre, String correo, String pwd, Rol rol) {
-        this.matricula = matricula;
-        this.nombre = nombre;
-        this.correo = correo;
-        this.pwd = pwd;
-        this.rol = rol;
+    public String nombreCompleto() {
+        return nombre + " " + apellidos;
     }
 
-
-    public Integer getMatricula() {
+    public String getMatricula() {
         return matricula;
     }
 
-    public void setMatricula(Integer matricula) {
+    public void setMatricula(String matricula) {
         this.matricula = matricula;
     }
 
@@ -48,20 +45,12 @@ public class Usuario {
         this.nombre = nombre;
     }
 
-    public String getApellidoP() {
-        return apellidoP;
+    public String getApellidos() {
+        return apellidos;
     }
 
-    public void setApellidoP(String apellidoP) {
-        this.apellidoP = apellidoP;
-    }
-
-    public String getApellidoM() {
-        return apellidoM;
-    }
-
-    public void setApellidoM(String apellidoM) {
-        this.apellidoM = apellidoM;
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
     }
 
     public String getCorreo() {
@@ -72,19 +61,27 @@ public class Usuario {
         this.correo = correo;
     }
 
-    public String getPwd() {
-        return pwd;
-    }
-
-    public void setPwd(String pwd) {
-        this.pwd = pwd;
-    }
-
     public Rol getRol() {
         return rol;
     }
 
     public void setRol(Rol rol) {
         this.rol = rol;
+    }
+
+    public String getProveedor() {
+        return proveedor;
+    }
+
+    public void setProveedor(String proveedor) {
+        this.proveedor = proveedor;
+    }
+
+    public String getIdExterno() {
+        return idExterno;
+    }
+
+    public void setIdExterno(String idExterno) {
+        this.idExterno = idExterno;
     }
 }

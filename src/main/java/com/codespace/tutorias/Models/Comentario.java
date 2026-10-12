@@ -1,8 +1,8 @@
 package com.codespace.tutorias.Models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "comentarios")
@@ -10,29 +10,21 @@ public class Comentario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_comentario")
     private int idComentario;
 
-    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "matricula_usuario")
-    private Usuario usuario;
+    @JoinColumn(name = "matricula_tutorado")
+    private Usuario tutorado;
 
-    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "id_tutoria")
     private Tutoria tutoria;
 
-    @Column(name = "comentario", length = 255, nullable = false)
     private String comentario;
 
-    public Comentario() {}
+    private OffsetDateTime fechaComentario;
 
-    public Comentario(Usuario usuario, Tutoria tutoria, String comentario) {
-        this.usuario = usuario;
-        this.tutoria = tutoria;
-        this.comentario = comentario;
-    }
+    public Comentario() {}
 
     public int getIdComentario() {
         return idComentario;
@@ -42,12 +34,12 @@ public class Comentario {
         this.idComentario = idComentario;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
+    public Usuario getTutorado() {
+        return tutorado;
     }
 
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
+    public void setTutorado(Usuario tutorado) {
+        this.tutorado = tutorado;
     }
 
     public Tutoria getTutoria() {
@@ -64,5 +56,13 @@ public class Comentario {
 
     public void setComentario(String comentario) {
         this.comentario = comentario;
+    }
+
+    public OffsetDateTime getFechaComentario() {
+        return fechaComentario;
+    }
+
+    public void setFechaComentario(OffsetDateTime fechaComentario) {
+        this.fechaComentario = fechaComentario;
     }
 }

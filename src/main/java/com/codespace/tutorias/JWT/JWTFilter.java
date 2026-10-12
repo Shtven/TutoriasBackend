@@ -1,31 +1,40 @@
 package com.codespace.tutorias.JWT;
 
+import com.codespace.tutorias.Exceptions.RespuestaJson;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Lee el JWT de sesión y deja en la request los atributos "matricula" y
+ * "rol" que consumen los controladores con @RequestAttribute.
+ */
 @Component
 public class JWTFilter extends OncePerRequestFilter {
 
-    @Value("${api.key}")
-    private String apiKey;
+    private final JWTUtils jwtUtils;
+
+    public JWTFilter(JWTUtils jwtUtils) {
+        this.jwtUtils = jwtUtils;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // El login no usa el JWT de sesión; un token viejo en el header no debe bloquearlo.
+        return request.getServletPath().startsWith("/auth/");
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,30 +45,28 @@ public class JWTFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+            String matricula;
+            String rol;
 
             try {
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(Keys.hmacShaKeyFor(apiKey.getBytes(StandardCharsets.UTF_8)))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-
-                String rol = claims.get("rol", String.class);
-                Integer matricula = claims.get("matricula", Integer.class);
-
-                request.setAttribute("matricula", matricula);
-                request.setAttribute("rol", rol);
-
-                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol));
-                Authentication auth = new UsernamePasswordAuthenticationToken(matricula, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
+                Claims claims = jwtUtils.leer(authHeader.substring(7));
+                if (!JWTUtils.TIPO_SESION.equals(claims.get("tipo", String.class))) {
+                    throw new IllegalArgumentException("No es un token de sesión");
+                }
+                matricula = claims.getSubject();
+                rol = claims.get("rol", String.class);
             } catch (Exception e) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token inv\u00e1lido o expirado");
+                RespuestaJson.escribir(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        "Token inválido o expirado.");
                 return;
             }
+
+            request.setAttribute("matricula", matricula);
+            request.setAttribute("rol", rol);
+
+            Authentication auth = new UsernamePasswordAuthenticationToken(
+                    matricula, null, List.of(new SimpleGrantedAuthority("ROLE_" + rol)));
+            SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
         filterChain.doFilter(request, response);

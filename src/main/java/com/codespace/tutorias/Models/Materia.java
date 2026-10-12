@@ -1,27 +1,21 @@
 package com.codespace.tutorias.Models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
-
+/** Experiencia Educativa (EE). */
 @Entity
 public class Materia {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idMateria;
+
     private String materia;
-    private int nrc;
+
+    /** NRC. */
+    private int identificador;
 
     public Materia() {}
-
-    public Materia(int idMateria, String materia, int nrc) {
-        this.idMateria = idMateria;
-        this.materia = materia;
-        this.nrc = nrc;
-    }
 
     public int getIdMateria() {
         return idMateria;
@@ -39,11 +33,11 @@ public class Materia {
         this.materia = materia;
     }
 
-    public int getNrc() {
-        return nrc;
+    public int getIdentificador() {
+        return identificador;
     }
 
-    public void setNrc(int nrc) {
-        this.nrc = nrc;
+    public void setIdentificador(int identificador) {
+        this.identificador = identificador;
     }
 }

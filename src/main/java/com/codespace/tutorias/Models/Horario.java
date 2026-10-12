@@ -3,32 +3,34 @@ package com.codespace.tutorias.Models;
 import jakarta.persistence.*;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class Horario {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idHorario;
 
     @ManyToOne
-    @JoinColumn(name = "matricula_tutor")
-    private Usuario tutor;
+    @JoinColumn(name = "id_tutoria")
+    private Tutoria tutoria;
 
+    /** LUNES..VIERNES, sin acentos (ver Helpers.Dia). */
     private String dia;
 
     private LocalTime horaInicio;
-
     private LocalTime horaFin;
 
-    public Horario() {}
+    /** ACTIVO | INACTIVO. */
+    private String estado;
 
-    public Horario(int idHorario, Usuario tutor, String dia, LocalTime horaInicio, LocalTime horaFin) {
-        this.idHorario = idHorario;
-        this.tutor = tutor;
-        this.dia = dia;
-        this.horaInicio = horaInicio;
-        this.horaFin = horaFin;
-    }
+    @OneToMany(mappedBy = "horario", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("idTema")
+    private List<Tema> temas = new ArrayList<>();
+
+    public Horario() {}
 
     public int getIdHorario() {
         return idHorario;
@@ -38,12 +40,12 @@ public class Horario {
         this.idHorario = idHorario;
     }
 
-    public Usuario getTutor() {
-        return tutor;
+    public Tutoria getTutoria() {
+        return tutoria;
     }
 
-    public void setTutor(Usuario tutor) {
-        this.tutor = tutor;
+    public void setTutoria(Tutoria tutoria) {
+        this.tutoria = tutoria;
     }
 
     public String getDia() {
@@ -68,5 +70,21 @@ public class Horario {
 
     public void setHoraFin(LocalTime horaFin) {
         this.horaFin = horaFin;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public List<Tema> getTemas() {
+        return temas;
+    }
+
+    public void setTemas(List<Tema> temas) {
+        this.temas = temas;
     }
 }

@@ -1,34 +1,36 @@
 package com.codespace.tutorias.Models;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 public class Tutoria {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idTutoria;
-    @ManyToOne
-    @JoinColumn(name = "id_horario")
-    private Horario horario;
-    @JsonManagedReference
-    @OneToMany(mappedBy = "tutoria")
-    private List<Asistencia> asistencias;
-    @OneToMany(mappedBy = "tutoria", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Tema> temas;
+
     @ManyToOne
     @JoinColumn(name = "id_materia")
     private Materia materia;
+
+    @ManyToOne
+    @JoinColumn(name = "matricula_tutor")
+    private Usuario tutor;
+
     private int edificio;
     private int aula;
-    private String estado;
-    private LocalDate fecha;
 
-    public Tutoria() {
-    }
+    /** ACTIVA | INACTIVA. */
+    private String estado;
+
+    @OneToMany(mappedBy = "tutoria", cascade = CascadeType.ALL)
+    @OrderBy("idHorario")
+    private List<Horario> horarios = new ArrayList<>();
+
+    public Tutoria() {}
 
     public int getIdTutoria() {
         return idTutoria;
@@ -38,36 +40,20 @@ public class Tutoria {
         this.idTutoria = idTutoria;
     }
 
-    public Horario getHorario() {
-        return horario;
-    }
-
-    public void setHorario(Horario horario) {
-        this.horario = horario;
-    }
-
-    public List<Asistencia> getAsistencias() {
-        return asistencias;
-    }
-
-    public void setAsistencias(List<Asistencia> asistencias) {
-        this.asistencias = asistencias;
-    }
-
-    public List<Tema> getTemas() {
-        return temas;
-    }
-
-    public void setTemas(List<Tema> temas) {
-        this.temas = temas;
-    }
-
     public Materia getMateria() {
         return materia;
     }
 
     public void setMateria(Materia materia) {
         this.materia = materia;
+    }
+
+    public Usuario getTutor() {
+        return tutor;
+    }
+
+    public void setTutor(Usuario tutor) {
+        this.tutor = tutor;
     }
 
     public int getEdificio() {
@@ -94,11 +80,11 @@ public class Tutoria {
         this.estado = estado;
     }
 
-    public LocalDate getFecha() {
-        return fecha;
+    public List<Horario> getHorarios() {
+        return horarios;
     }
 
-    public void setFecha(LocalDate fecha) {
-        this.fecha = fecha;
+    public void setHorarios(List<Horario> horarios) {
+        this.horarios = horarios;
     }
 }

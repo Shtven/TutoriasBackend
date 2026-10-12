@@ -3,45 +3,64 @@ package com.codespace.tutorias.Helpers;
 import com.codespace.tutorias.Exceptions.BusinessException;
 
 import java.text.Normalizer;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 
 /**
- * Dias de la semana permitidos para un Horario. Se persiste como String
- * en BD por compatibilidad con datos existentes; este enum sirve para
- * normalizar y validar la entrada del usuario.
- *
- * El metodo {@link #normalizar(String)} es el unico punto de entrada
- * desde los servicios: aplica trim, quita acentos (MIÉRCOLES -> MIERCOLES),
- * pasa a mayusculas, y rechaza valores fuera del set permitido.
+ * Días permitidos para un horario (RN-1: lunes a viernes). Se persiste como
+ * String sin acentos; {@link #normalizar(String)} es el único punto de entrada
+ * desde el cliente.
  */
 public enum Dia {
-    LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO, DOMINGO;
+    LUNES(DayOfWeek.MONDAY),
+    MARTES(DayOfWeek.TUESDAY),
+    MIERCOLES(DayOfWeek.WEDNESDAY),
+    JUEVES(DayOfWeek.THURSDAY),
+    VIERNES(DayOfWeek.FRIDAY);
+
+    private final DayOfWeek dayOfWeek;
+
+    Dia(DayOfWeek dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
+
+    public DayOfWeek dayOfWeek() {
+        return dayOfWeek;
+    }
+
+    /** Primera fecha >= desde que cae en este día. */
+    public LocalDate siguienteDesde(LocalDate desde) {
+        return desde.with(TemporalAdjusters.nextOrSame(dayOfWeek));
+    }
+
+    public boolean coincide(LocalDate fecha) {
+        return fecha.getDayOfWeek() == dayOfWeek;
+    }
+
+    /** Día guardado en BD (ya normalizado). */
+    public static Dia de(String guardado) {
+        return Dia.valueOf(guardado);
+    }
 
     /**
-     * Normaliza un dia recibido del cliente:
-     *   - trim
-     *   - quita acentos (NFD + strip marks)
-     *   - to upper case
-     *   - valida contra el set de dias permitidos
+     * Normaliza un día recibido del cliente: trim, quita acentos
+     * (MIÉRCOLES -> MIERCOLES), mayúsculas y valida contra lunes a viernes.
      *
-     * @return el dia normalizado (MAYUSCULAS, sin acentos)
-     * @throws BusinessException si es null, vacio o no corresponde a un dia valido
+     * @throws BusinessException si es nulo, vacío o no es un día hábil
      */
     public static String normalizar(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
-            throw new BusinessException("El dia es obligatorio.");
+            throw new BusinessException("El día es obligatorio.");
         }
 
         String sinAcentos = Normalizer.normalize(raw.trim(), Normalizer.Form.NFD)
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        String enMayusculas = sinAcentos.toUpperCase();
 
         try {
-            return Dia.valueOf(enMayusculas).name();
+            return Dia.valueOf(sinAcentos.toUpperCase()).name();
         } catch (IllegalArgumentException e) {
-            throw new BusinessException(
-                    "Dia invalido: '" + raw + "'. Valores permitidos: " +
-                            "LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO, DOMINGO."
-            );
+            throw new BusinessException("Día inválido: solo de lunes a viernes.");
         }
     }
 }

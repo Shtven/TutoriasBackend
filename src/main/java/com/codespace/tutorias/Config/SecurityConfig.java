@@ -1,19 +1,27 @@
 package com.codespace.tutorias.Config;
 
+import com.codespace.tutorias.Exceptions.RespuestaJson;
 import com.codespace.tutorias.JWT.JWTFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Seguridad stateless con el JWT propio del backend. Los roles por endpoint
+ * se declaran con @PreAuthorize en cada controlador; aquí solo van las
+ * reglas generales (público, /admin, autenticado).
+ */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JWTFilter jwtFilter;
@@ -22,73 +30,40 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
     }
 
+    /** Sin usuarios locales: evita que Spring genere una contraseña por defecto. */
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public UserDetailsService userDetailsService() {
+        return new InMemoryUserDetailsManager();
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                // ❌ Desactivar CSRF (API REST)
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // 🌐 CORS por defecto
                 .cors(Customizer.withDefaults())
-
-                // 🔐 Sin sesiones (JWT)
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 🔑 Reglas de autorización
                 .authorizeHttpRequests(auth -> auth
-
-                        // 🔓 Endpoints públicos
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/materia/**").permitAll()
-                        .requestMatchers(HttpMethod.PUT, "/auth/newPassword").permitAll()
-
-                        // 🔒 Endpoints protegidos
-                        .requestMatchers(HttpMethod.GET, "/tutorias/**")
-                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
-
-                        // 🎯 Reglas mas especificas PRIMERO (Spring evalua por orden)
-                        .requestMatchers(HttpMethod.GET, "/tutoria/disponibles")
-                        .hasAnyRole("TUTORADO", "ADMIN")
-
-                        .requestMatchers(HttpMethod.GET, "/tutoria/{id:\\d+}")
-                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
-
-                        // Regla generica al final
-                        .requestMatchers("/tutoria/**")
-                        .hasAnyRole("TUTOR", "ADMIN")
-
-                        .requestMatchers("/horario/**")
-                        .hasAnyRole("TUTOR", "ADMIN")
-
-                        .requestMatchers("/asistencia/**")
-                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
-
-                        .requestMatchers("/comentarios/**")
-                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
-
-                        .requestMatchers("/temas/**")
-                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
-
-                        .requestMatchers("/calificaciones/**")
-                        .hasAnyRole("TUTOR", "TUTORADO", "ADMIN")
-
-                        // 🔐 Todo lo demás requiere autenticación
+                        .requestMatchers("/auth/**", "/error").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
 
-                // 🚫 Desactivar login por defecto de Spring
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, e) ->
+                                RespuestaJson.escribir(response, HttpServletResponse.SC_UNAUTHORIZED,
+                                        "Debes iniciar sesión."))
+                        .accessDeniedHandler((request, response, e) ->
+                                RespuestaJson.escribir(response, HttpServletResponse.SC_FORBIDDEN,
+                                        "No tienes permiso para esta acción."))
+                )
+
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                // 🧩 Filtro JWT
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
