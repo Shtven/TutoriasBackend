@@ -87,6 +87,37 @@ public abstract class PruebaIntegracion {
                 Integer.class, nombre, nrc);
     }
 
+    /** Crea una tutoría por la API y devuelve su id. horarios = arreglo JSON. */
+    protected int crearTutoria(String tokenTutor, int idMateria, int edificio, int aula, String horarios) throws Exception {
+        String json = "{\"idMateria\":" + idMateria + ",\"edificio\":" + edificio + ",\"aula\":" + aula
+                + ",\"horarios\":" + horarios + "}";
+        String respuesta = mvc.perform(postCon(tokenTutor, json, "/tutorias"))
+                .andReturn().getResponse().getContentAsString();
+        Integer id = com.jayway.jsonpath.JsonPath.read(respuesta, "$.data.idTutoria");
+        return id;
+    }
+
+    protected int horario(int idTutoria, String dia) {
+        return jdbc.queryForObject("SELECT id_horario FROM horario WHERE id_tutoria = ? AND dia = ? AND estado = 'ACTIVO'",
+                Integer.class, idTutoria, dia);
+    }
+
+    /** Inscripción directa en BD (para preparar escenarios). */
+    protected int inscribir(int idTutoria, String matricula) {
+        return jdbc.queryForObject("INSERT INTO inscripcion (id_tutoria, matricula_tutorado, fecha_inscripcion, estado) " +
+                "VALUES (?, ?, now() - interval '30 days', 'ACTIVA') RETURNING id_inscripcion", Integer.class, idTutoria, matricula);
+    }
+
+    /** Sesión ya cerrada con las marcas dadas (idInscripcion -> asistio). */
+    protected int sesionCerrada(int idHorario, LocalDate fecha, java.util.Map<Integer, Boolean> marcas) {
+        int idSesion = jdbc.queryForObject("INSERT INTO sesion (id_horario, fecha, hora_inicio, hora_fin, " +
+                "fecha_lista_abierta, fecha_lista_cerrada) SELECT id_horario, ?, hora_inicio, hora_fin, now(), now() " +
+                "FROM horario WHERE id_horario = ? RETURNING id_sesion", Integer.class, fecha, idHorario);
+        marcas.forEach((idInscripcion, asistio) -> jdbc.update(
+                "INSERT INTO asistencia (id_sesion, id_inscripcion, asistio) VALUES (?, ?, ?)", idSesion, idInscripcion, asistio));
+        return idSesion;
+    }
+
     // ------------------------------------------------------------------
     // Peticiones
     // ------------------------------------------------------------------

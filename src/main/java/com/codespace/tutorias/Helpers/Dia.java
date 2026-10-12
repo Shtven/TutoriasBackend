@@ -13,20 +13,35 @@ import java.time.temporal.TemporalAdjusters;
  * desde el cliente.
  */
 public enum Dia {
-    LUNES(DayOfWeek.MONDAY),
-    MARTES(DayOfWeek.TUESDAY),
-    MIERCOLES(DayOfWeek.WEDNESDAY),
-    JUEVES(DayOfWeek.THURSDAY),
-    VIERNES(DayOfWeek.FRIDAY);
+    LUNES(DayOfWeek.MONDAY, "lunes"),
+    MARTES(DayOfWeek.TUESDAY, "martes"),
+    MIERCOLES(DayOfWeek.WEDNESDAY, "miércoles"),
+    JUEVES(DayOfWeek.THURSDAY, "jueves"),
+    VIERNES(DayOfWeek.FRIDAY, "viernes");
 
     private final DayOfWeek dayOfWeek;
+    private final String nombre;
 
-    Dia(DayOfWeek dayOfWeek) {
+    Dia(DayOfWeek dayOfWeek, String nombre) {
         this.dayOfWeek = dayOfWeek;
+        this.nombre = nombre;
     }
 
     public DayOfWeek dayOfWeek() {
         return dayOfWeek;
+    }
+
+    /** Para mensajes: "miércoles". */
+    public String nombre() {
+        return nombre;
+    }
+
+    /** null si la fecha cae en fin de semana. */
+    public static Dia de(LocalDate fecha) {
+        for (Dia dia : values()) {
+            if (dia.dayOfWeek == fecha.getDayOfWeek()) return dia;
+        }
+        return null;
     }
 
     /** Primera fecha >= desde que cae en este día. */
