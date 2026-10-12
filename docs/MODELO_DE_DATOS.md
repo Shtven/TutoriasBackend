@@ -13,7 +13,7 @@ Se crea una **BD nueva**: no se migran datos, porque los anteriores eran de prue
    | Script | Contenido |
    |---|---|
    | `001_esquema.sql` | **Destructivo**: borra las tablas del esquema anterior y del actual. Crea el esquema, activa RLS y siembra `rol` y `aula` (provisional). |
-   | `002_datos_prueba.sql` | Opcional. Datos de los mockups: 11 tutorías, 46 inscripciones, historial. Rechaza ejecutarse si ya hay datos. |
+   | `002_datos_prueba.sql` | Opcional. Catálogo real de Ingeniería de Software, plan 2023 (54 EE, NRC aleatorios), y datos de los mockups: 11 tutorías, 46 inscripciones, historial. Rechaza ejecutarse si ya hay datos. |
    | `003_materias_plan_2019.sql` | Opcional. 44 EE del plan 2019 de Administración (NRC sintéticos). |
 
 2. **Cadena de conexión:** Project Settings → Database → Connection string (JDBC). Va en `DB_URL`, y el usuario y la contraseña en `DB_USERNAME` y `DB_PASSWORD`.

@@ -22,7 +22,7 @@ Documentación del prototipo de pruebas. Está alineada con:
 
 1. **Base de datos (Supabase):** en el SQL Editor ejecuta, en orden:
    1. `db/supabase/001_esquema.sql`: crea el esquema. **Es destructivo**: borra las tablas anteriores.
-   2. `db/supabase/002_datos_prueba.sql` (opcional): datos de los mockups.
+   2. `db/supabase/002_datos_prueba.sql` (opcional): las 54 EE reales de Ingeniería de Software (plan 2023) y datos de los mockups.
    3. `db/supabase/003_materias_plan_2019.sql` (opcional): catálogo de EE del plan 2019.
 2. **Variables de entorno:** copia `.env.example` a `.env` y llénalo. `DB_URL` es la cadena JDBC de Supabase.
 3. **Arrancar:** `./mvnw spring-boot:run`. Swagger UI queda en `/swagger-ui.html`.
