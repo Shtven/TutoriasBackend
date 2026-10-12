@@ -11,7 +11,7 @@ Documentación del prototipo de pruebas. Está alineada con:
 
 | Documento | Contenido |
 |---|---|
-| [AUTENTICACION.md](AUTENTICACION.md) | Cómo funciona el login con Microsoft y Google, registro en el primer acceso, JWT propio, campo de proveedor y opciones para entrar al panel de administración. |
+| [AUTENTICACION.md](AUTENTICACION.md) | Login con Microsoft y Google, registro en el primer acceso, registro y login con contraseña, JWT propio, campo de proveedor y opciones para entrar al panel de administración. |
 | [API.md](API.md) | Referencia de todos los endpoints: ruta, roles, body, respuesta y validaciones. |
 | [REGLAS_DE_NEGOCIO.md](REGLAS_DE_NEGOCIO.md) | Estados, cupo, choques de horario, sesiones y pase de lista, bajas, recordatorios y correos. |
 | [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md) | Tablas, cambios aplicados al esquema recibido y cómo crear la BD en Supabase. |
@@ -24,6 +24,8 @@ Documentación del prototipo de pruebas. Está alineada con:
    1. `db/supabase/001_esquema.sql`: crea el esquema. **Es destructivo**: borra las tablas anteriores.
    2. `db/supabase/002_datos_prueba.sql` (opcional): las 54 EE reales de Ingeniería de Software (plan 2023) y datos de los mockups.
    3. `db/supabase/003_materias_plan_2019.sql` (opcional): catálogo de EE del plan 2019.
+
+   Si la BD ya existía antes del registro con contraseña, ejecuta solo `db/supabase/004_registro_con_contrasena.sql` (no borra datos) **antes de desplegar** el backend.
 2. **Variables de entorno:** copia `.env.example` a `.env` y llénalo. `DB_URL` es la cadena JDBC de Supabase.
 3. **Arrancar:** `./mvnw spring-boot:run`. Swagger UI queda en `/swagger-ui.html`.
 4. **Probar sin Microsoft ni Google:** con `AUTH_DEV_HABILITADO=true`, `POST /auth/dev` con el correo de un usuario de los datos de prueba (ver [AUTENTICACION.md § 8](AUTENTICACION.md#8-login-de-desarrollo)). **Nunca lo actives en un despliegue público.**
@@ -100,8 +102,8 @@ Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: 
 
 | # | Pantalla | Rol | Endpoints |
 |---|---|---|---|
-| 01 | Iniciar sesión | — | `POST /auth/microsoft`, `POST /auth/google` (pruebas: `POST /auth/dev`) |
-| 02 | Completar registro | — | `POST /auth/registro` |
+| 01 | Iniciar sesión | — | `POST /auth/microsoft`, `POST /auth/google`, `POST /auth/signin` (pruebas: `POST /auth/dev`) |
+| 02 | Completar registro | — | Con proveedor: `POST /auth/registro`. A mano: `POST /auth/signup` |
 | — | Barra lateral (nombre, matrícula, rol) | Todos | `GET /usuarios/me` |
 | 03 | Explorar tutorías | TUTORADO | `GET /tutorias` |
 | 04 | Detalle de tutoría | TUTORADO | `GET /tutorias/{id}`, `GET /tutorias/{id}/comentarios`, `GET /inscripciones/semana` |
@@ -124,7 +126,7 @@ Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: 
 
 | Antes | Ahora | Motivo |
 |---|---|---|
-| `POST /auth/signup`, `POST /auth/signin` (contraseña) | `POST /auth/microsoft`, `POST /auth/google`, `POST /auth/registro` | Acceso solo con proveedor externo; ya no se guardan contraseñas. |
+| `POST /auth/signup`, `POST /auth/signin` (contraseña) | Se conservan y se suman `POST /auth/microsoft`, `POST /auth/google` y `POST /auth/registro` | Se puede entrar con proveedor externo o con contraseña. `signup` usa `apellidos` y `rol` por nombre, entra directo y acepta los campos viejos `pwd`, `apellidoP` y `apellidoM`; `signin` acepta matrícula o correo y responde `{ token, rol, usuario }`. |
 | `/tutoria` = una sesión con fecha | `/tutorias` = tutoría recurrente con horarios semanales | Una tutoría tiene horarios, y cada horario genera sesiones. |
 | `/horario` = disponibilidad del tutor | Los horarios pertenecen a una tutoría (`/tutorias`, `/horarios/{id}/temas`) | Nuevo modelo. |
 | `/asistencia` = inscripción + asistencia | `/inscripciones` y `/sesiones/{id}/lista` | Inscribirse y pasar lista son acciones distintas. |

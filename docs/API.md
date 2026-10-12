@@ -110,7 +110,14 @@ Representa una ocurrencia de un horario en una fecha. Puede existir en BD o ser 
 
 ## 1. Autenticación — `/auth` (público)
 
-Flujo completo y configuración en [AUTENTICACION.md](AUTENTICACION.md).
+Flujo completo y configuración en [AUTENTICACION.md](AUTENTICACION.md). Hay dos formas de entrar y conviven:
+
+| Forma | Registro | Login |
+|---|---|---|
+| Con proveedor (Microsoft / Google) | `POST /auth/{proveedor}` → `POST /auth/registro` | `POST /auth/microsoft`, `POST /auth/google` |
+| Con datos a mano y contraseña | `POST /auth/signup` | `POST /auth/signin` |
+
+Las dos devuelven la misma respuesta de sesión y el mismo JWT.
 
 ### `POST /auth/microsoft`
 ### `POST /auth/google`
@@ -130,6 +137,7 @@ Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT prop
   "data": {
     "registroPendiente": false,
     "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "rol": "TUTORADO",
     "usuario": {
       "matricula": "S23014587",
       "nombre": "Valeria",
@@ -142,7 +150,7 @@ Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT prop
 }
 ```
 
-El correo siempre se guarda y se devuelve en minúsculas.
+El correo siempre se guarda y se devuelve en minúsculas. `rol` repite `usuario.rol`: es lo que devolvía el login anterior (`{ token, rol }`) y se conserva para los clientes que lo leen así. `usuario.proveedor` es `null` en las cuentas con contraseña.
 
 **Response 200 — primer acceso**
 ```json
@@ -193,6 +201,67 @@ Completa el primer acceso (pantalla 02). Nombre, apellidos, correo y proveedor s
 | — | Token de registro vencido o inválido → `"El registro expiró. Vuelve a iniciar sesión."` |
 
 **Response 200** → igual que el login de un usuario registrado (`registroPendiente: false`, `token`, `usuario`), con `message: "Registro exitoso."`. Si el formulario se envía dos veces, la segunda llamada solo inicia sesión.
+
+---
+
+### `POST /auth/signup`
+
+Registro con datos capturados a mano, sin proveedor. Crea la cuenta con contraseña y **entra directo**: devuelve la sesión.
+
+**Body**
+```json
+{
+  "matricula": "S24011236",
+  "nombre": "Sofía",
+  "apellidos": "Ramos Gutiérrez",
+  "correo": "zs24011236@estudiantes.uv.mx",
+  "password": "secreto123",
+  "rol": "TUTORADO"
+}
+```
+
+También acepta los nombres de la versión anterior: `pwd` en lugar de `password`, y `apellidoP` + `apellidoM` en lugar de `apellidos` (se unen con un espacio).
+
+**Validaciones**
+
+| Campo | Regla |
+|---|---|
+| `matricula` | Igual que en `/auth/registro`: `S` + 8 dígitos, se acepta `zS`. Única: `"La matrícula ya está registrada con otra cuenta."` |
+| `nombre` | Obligatorio, máximo 50 caracteres. |
+| `apellidos` | Obligatorio (o `apellidoP`/`apellidoM`), máximo 200: `"Los apellidos son obligatorios."` |
+| `correo` | Formato válido, se guarda en minúsculas. Dominio permitido por `auth.local.dominios` (por defecto `estudiantes.uv.mx` y `gmail.com`): `"El correo debe ser @estudiantes.uv.mx o @gmail.com."` Único: `"El correo ya está registrado."` |
+| `password` | 8 a 72 caracteres y no más de 72 bytes (límite de BCrypt; una letra con acento ocupa 2). Se guarda solo su hash BCrypt. |
+| `rol` | `TUTORADO` o `TUTOR`, sin distinguir mayúsculas. `ADMIN` u otro valor → `"Rol inválido."` |
+
+**Response 200** → igual que el login de un usuario registrado, con `message: "Registro exitoso."` y `usuario.proveedor: null`.
+
+---
+
+### `POST /auth/signin`
+
+Login con contraseña, por **matrícula o correo**.
+
+**Body**
+```json
+{ "matricula": "S24011236", "password": "secreto123" }
+```
+```json
+{ "correo": "zs24011236@estudiantes.uv.mx", "password": "secreto123" }
+```
+
+- Si vienen los dos, se usa el correo. Acepta `pwd` en lugar de `password`.
+- La matrícula de alumno se normaliza como en el registro (`zs24011236` → `S24011236`); cualquier otra se busca tal cual, para que un `ADMIN` entre con la suya (por ejemplo `25480`).
+
+**Response 200** → igual que el login de un usuario registrado (`message: "Login"`).
+
+**Errores (400)**
+
+| Mensaje | Causa |
+|---|---|
+| `Matrícula, correo o contraseña incorrectos.` | El usuario no existe o la contraseña no coincide. Es el mismo mensaje en los dos casos. |
+| `Esta cuenta inicia sesión con Microsoft.` / `…con Google.` | La cuenta está ligada a un proveedor y no tiene contraseña. |
+| `Esta cuenta no tiene contraseña: inicia sesión con Microsoft o Google.` | Pre-registro (por ejemplo, un admin dado de alta por SQL sin contraseña). |
+| `Escribe tu matrícula o tu correo.` | No vino ninguno de los dos. |
 
 ---
 
@@ -1097,6 +1166,7 @@ Desactiva **todas** las tutorías `ACTIVA` al terminar el periodo. Aplica los ef
 | Ruta | TUTORADO | TUTOR | ADMIN |
 |---|:-:|:-:|:-:|
 | `POST /auth/microsoft`, `/auth/google`, `/auth/registro` | público | público | público |
+| `POST /auth/signup`, `/auth/signin` | público | público | público |
 | `POST /auth/dev` (solo con `AUTH_DEV_HABILITADO=true`) | público | público | público |
 | `GET /usuarios/me` | ✅ | ✅ | ✅ |
 | `GET /materias`, `GET /materias/{id}` | — | ✅ | ✅ |

@@ -23,6 +23,9 @@ public class Usuario {
     /** Claim 'sub' del proveedor. */
     private String idExterno;
 
+    /** BCrypt. Solo cuentas registradas con contraseña (POST /auth/signup). */
+    private String passwordHash;
+
     public Usuario() {}
 
     public String nombreCompleto() {
@@ -83,5 +86,13 @@ public class Usuario {
 
     public void setIdExterno(String idExterno) {
         this.idExterno = idExterno;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

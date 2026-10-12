@@ -33,4 +33,14 @@ public final class MatriculaHelper {
 
         return "S" + m.group(1);
     }
+
+    /**
+     * Para el login con contraseña: si tiene formato de alumno la normaliza;
+     * si no (la matrícula de un ADMIN asignada por BD), la deja tal cual.
+     */
+    public static String normalizarSiAplica(String raw) {
+        String limpia = raw.trim();
+        Matcher m = PATRON.matcher(limpia);
+        return m.matches() ? "S" + m.group(1) : limpia;
+    }
 }

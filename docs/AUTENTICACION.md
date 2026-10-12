@@ -1,6 +1,11 @@
-# Autenticación con proveedores externos
+# Autenticación
 
-El sistema no maneja contraseñas. El usuario se identifica con su cuenta de **Microsoft** (institucional UV) o de **Google** (`gmail.com`). El backend verifica esa identidad y entrega su **propio JWT**, que es el que se usa en el resto de la API.
+Hay dos formas de entrar, y conviven:
+
+- **Con proveedor externo:** la cuenta de **Microsoft** (institucional UV) o de **Google** (`gmail.com`). El sistema nunca ve la contraseña del proveedor (§ 1 a § 5).
+- **Con datos a mano y contraseña:** registro con matrícula, nombre, apellidos, correo y contraseña, y login con matrícula o correo (§ 9). Es la forma de la versión anterior, recuperada.
+
+En los dos casos el backend entrega su **propio JWT**, que es el que se usa en el resto de la API.
 
 ## 1. Cómo funciona
 
@@ -166,6 +171,8 @@ const { success, message, data } = await res.json();
 | `API_JWT_EXPIRATION` | Vigencia del JWT propio en ms (ya existe). |
 | `AUTH_DEV_HABILITADO` | `true` solo en pruebas: habilita `POST /auth/dev` (§ 8). Por defecto `false`. |
 
+El registro con contraseña no necesita variables nuevas; sus dominios se configuran con `auth.local.dominios` (§ 9).
+
 Si falta el Client ID de un proveedor, su endpoint responde `"El acceso con Google no está configurado."` (o con Microsoft). El resto de la API funciona igual.
 
 Los dominios permitidos se configuran en `application.properties` con `auth.google.dominio` (por defecto `gmail.com`) y `auth.microsoft.dominio` (por defecto `estudiantes.uv.mx`).
@@ -177,7 +184,7 @@ Los dominios permitidos se configuran en `application.properties` con `auth.goog
 
 ## 4. JWT propio
 
-Después de verificar al usuario, el backend emite su propio JWT (HS256, igual que hoy):
+Después de verificar al usuario, con proveedor o con contraseña, el backend emite su propio JWT (HS256):
 
 | Claim | Valor |
 |---|---|
@@ -209,14 +216,14 @@ Motivos:
 **Búsqueda en el login:**
 
 1. Por `proveedor` + `id_externo`.
-2. Si no hay resultado: por correo **solo** si esa fila tiene `id_externo IS NULL` (pre-registro), y se liga.
+2. Si no hay resultado: por correo **solo** si esa fila tiene `id_externo IS NULL` (pre-registro o cuenta con contraseña), y se liga. Si la cuenta tenía contraseña, **se desactiva** (§ 9).
 3. Si tampoco: primer acceso → `tokenRegistro`.
 
 Si la misma persona entra después con el otro proveedor, su correo es distinto (los dominios no se cruzan). Se le pedirá registrarse y el registro fallará porque la matrícula ya existe: *"La matrícula ya está registrada con otra cuenta."*
 
 ## 6. Opciones para entrar al panel de administración
 
-`POST /auth/registro` solo acepta `TUTORADO` y `TUTOR`. El rol `ADMIN` nunca se asigna desde la API.
+`POST /auth/registro` y `POST /auth/signup` solo aceptan `TUTORADO` y `TUTOR`. El rol `ADMIN` nunca se asigna desde la API.
 
 ### Opción A — Rol en BD con el mismo login (recomendada para el prototipo)
 
@@ -250,13 +257,16 @@ En la App registration se define un *App role* `Admin`. TI de la UV lo asigna a 
 - ✅ Altas y bajas centralizadas en la UV y revocación inmediata en el siguiente login. Es la opción más seria.
 - ⚠️ Requiere que la app esté en el tenant de la UV y que TI participe. Solo funciona con cuentas Microsoft.
 
-### Opción D — Credenciales locales separadas (no recomendada)
+### Opción D — Contraseña puesta por SQL
 
-Usuario y contraseña propios del panel, con 2FA. Vuelve a introducir el manejo de contraseñas que se acaba de eliminar.
+Con el login con contraseña (§ 9), el admin puede entrar con `POST /auth/signin` si se le pone una contraseña en la BD. Sirve mientras su correo `@uv.mx` no pueda entrar con Microsoft (el dominio permitido es `estudiantes.uv.mx`) y evita activar `/auth/dev` en producción. El SQL está en § 9.
+
+- ✅ No depende de ningún proveedor.
+- ⚠️ Sin segundo factor: usar una contraseña larga y única, y cambiarla por SQL si se filtra.
 
 ### Recomendación
 
-- **Ahora:** opción A (pre-registro A1).
+- **Ahora:** opción A (pre-registro A1); si el admin no puede entrar con un proveedor, opción D.
 - **Al formalizar:** migrar a la opción C.
 - **En ambos casos:**
   - mantener los endpoints de admin bajo `/admin/**` con `hasRole('ADMIN')`;
@@ -271,7 +281,9 @@ Ver detalle en [API.md § Autenticación](API.md#1-autenticación--auth-público
 |---|---|---|
 | `POST` | `/auth/microsoft` | Login con ID token de Microsoft. |
 | `POST` | `/auth/google` | Login con ID token de Google. |
-| `POST` | `/auth/registro` | Completa el primer acceso (matrícula y rol). |
+| `POST` | `/auth/registro` | Completa el primer acceso con proveedor (matrícula y rol). |
+| `POST` | `/auth/signup` | Registro con datos a mano y contraseña (§ 9). |
+| `POST` | `/auth/signin` | Login con matrícula o correo y contraseña (§ 9). |
 | `POST` | `/auth/dev` | Solo pruebas (§ 8). |
 | `GET` | `/usuarios/me` | Datos del usuario autenticado. |
 
@@ -291,3 +303,49 @@ Con `002_datos_prueba.sql` cargado:
 | ADMIN | Adriana Salas Ortega | `asalas@uv.mx` |
 
 Cuando la variable es `false` (el valor por defecto), la ruta no existe y responde `404`. **Nunca actives esta opción en un despliegue accesible desde internet**: cualquiera podría entrar como cualquier usuario sabiendo su correo.
+
+## 9. Registro y login con contraseña
+
+Es la forma de la versión anterior (`/auth/signup` y `/auth/signin`), recuperada para quien no quiera o no pueda usar un proveedor. Convive con el login por Microsoft o Google: los dos crean el mismo tipo de usuario y entregan el mismo JWT.
+
+**BD:** la contraseña se guarda como hash BCrypt en `usuario.password_hash` (nunca en texto plano; un `CHECK` lo impide). En una BD creada antes de este cambio hay que ejecutar `db/supabase/004_registro_con_contrasena.sql` **antes de desplegar** el backend: con `ddl-auto=validate`, el backend no arranca si falta la columna.
+
+### Registro (`POST /auth/signup`)
+
+El usuario captura matrícula, nombre, apellidos, correo, contraseña y rol (`TUTORADO` o `TUTOR`). El backend crea la cuenta y devuelve la sesión, sin un segundo paso. Detalle de validaciones en [API.md](API.md#post-authsignup).
+
+| Regla | Valor |
+|---|---|
+| Dominios de correo | `auth.local.dominios` en `application.properties` (por defecto `estudiantes.uv.mx,gmail.com`, los mismos de los proveedores). Vacío = cualquier dominio. |
+| Contraseña | 8 a 72 caracteres; se guarda con BCrypt. |
+| Únicos | Matrícula y correo, contra **todas** las cuentas (con proveedor o con contraseña). |
+| Compatibilidad | Acepta `pwd`, `apellidoP` y `apellidoM` de la versión anterior. |
+
+### Login (`POST /auth/signin`)
+
+Con matrícula o con correo, más la contraseña. La respuesta es igual a la del login con proveedor e incluye `rol` en el primer nivel, como el login anterior. Si la cuenta no tiene contraseña (entra con un proveedor o es un pre-registro), el mensaje indica cómo entrar.
+
+### Una cuenta, dos formas de entrar
+
+Si alguien con cuenta de contraseña entra después con Microsoft o Google **con el mismo correo**, la cuenta se liga a ese proveedor y **su contraseña se desactiva**. Desde ese momento entra solo con el proveedor.
+
+El motivo: el registro manual no verifica que el correo sea de quien lo escribe, y el proveedor sí. Sin esta regla, alguien podría registrar a mano el correo de otra persona y, cuando la dueña entrara con Microsoft, seguir entrando a esa misma cuenta con la contraseña que eligió.
+
+El camino contrario no existe: una cuenta creada con proveedor no puede agregarse una contraseña por la API (`/auth/signup` responde `"El correo ya está registrado."`).
+
+### Contraseña para un usuario existente (por ejemplo, el ADMIN)
+
+El admin no puede registrarse por la API. Para que entre con `/auth/signin`, se le pone una contraseña por SQL con `pgcrypto`, que en Supabase vive en el esquema `extensions`:
+
+```sql
+UPDATE usuario
+   SET password_hash = extensions.crypt('Cambia-esta-contraseña', extensions.gen_salt('bf', 10))
+ WHERE correo = 'asalas@uv.mx';
+```
+
+Después entra con `{"correo": "asalas@uv.mx", "password": "..."}` o con `{"matricula": "25480", "password": "..."}`.
+
+### Límites conocidos
+
+- **No se verifica el correo.** Cualquiera puede registrarse a mano con un correo o una matrícula que no son suyos, igual que en la versión anterior. La regla de «Una cuenta, dos formas de entrar» evita que eso le dé acceso a la cuenta de otra persona cuando esta entra con su proveedor, pero no evita que alguien ocupe una matrícula. Para producción conviene verificar el correo (enviar un enlace con SendGrid) o limitar el registro manual a `TUTORADO`.
+- **Sin recuperación de contraseña ni límite de intentos.** Hoy se cambia por SQL; el límite de intentos se puede poner con bucket4j o en el proxy.

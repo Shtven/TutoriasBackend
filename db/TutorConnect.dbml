@@ -12,8 +12,9 @@ Table usuario {
   apellidos varchar(200) [not null]
   correo varchar(255) [not null, unique, note: 'En minusculas']
   id_rol int [not null, ref: > rol.id_rol]
-  proveedor varchar(20) [note: 'MICROSOFT | GOOGLE; NULL = pre-registro']
+  proveedor varchar(20) [note: 'MICROSOFT | GOOGLE; NULL = pre-registro o cuenta con contrasena']
   id_externo varchar(255) [note: 'Claim sub del proveedor']
+  password_hash varchar(100) [note: 'BCrypt; solo cuentas registradas con contrasena']
 
   indexes {
     (proveedor, id_externo) [unique]

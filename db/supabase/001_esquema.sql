@@ -5,6 +5,7 @@
 -- Base: TutorConnect.sql (dbdiagram) + cambios recomendados en
 -- docs/MODELO_DE_DATOS.md:
 --   1. usuario.proveedor / usuario.id_externo (login Microsoft/Google)
+--      y usuario.password_hash (registro con contrasena, BCrypt)
 --   2. inscripcion ligada a la tutoria (id_tutoria) en lugar del horario;
 --      recordatorio gana id_horario
 --   3. catalogo de lugares: tabla aula (edificio, aula) + FK compuesta
@@ -78,18 +79,20 @@ CREATE TABLE aula (
 -- 2. Usuarios
 -- ---------------------------------------------------------------------
 CREATE TABLE usuario (
-    matricula   VARCHAR(50)  PRIMARY KEY,           -- con prefijo S: S23014587
-    nombre      VARCHAR(50)  NOT NULL,
-    apellidos   VARCHAR(200) NOT NULL,
-    correo      VARCHAR(255) NOT NULL,
-    id_rol      INT          NOT NULL,
-    proveedor   VARCHAR(20),                        -- MICROSOFT | GOOGLE (NULL = pre-registro)
-    id_externo  VARCHAR(255),                       -- claim 'sub' del proveedor
-    CONSTRAINT ux_usuario_correo       UNIQUE (correo),
-    CONSTRAINT fk_usuario_rol          FOREIGN KEY (id_rol) REFERENCES rol (id_rol),
-    CONSTRAINT ck_usuario_correo_lower CHECK (correo = lower(correo)),
-    CONSTRAINT ck_usuario_proveedor    CHECK (proveedor IN ('MICROSOFT', 'GOOGLE')),
-    CONSTRAINT ck_usuario_proveedor_id CHECK ((proveedor IS NULL) = (id_externo IS NULL))
+    matricula     VARCHAR(50)  PRIMARY KEY,         -- con prefijo S: S23014587
+    nombre        VARCHAR(50)  NOT NULL,
+    apellidos     VARCHAR(200) NOT NULL,
+    correo        VARCHAR(255) NOT NULL,
+    id_rol        INT          NOT NULL,
+    proveedor     VARCHAR(20),                      -- MICROSOFT | GOOGLE (NULL = pre-registro o cuenta con contrasena)
+    id_externo    VARCHAR(255),                     -- claim 'sub' del proveedor
+    password_hash VARCHAR(100),                     -- BCrypt; solo cuentas registradas con contrasena
+    CONSTRAINT ux_usuario_correo          UNIQUE (correo),
+    CONSTRAINT fk_usuario_rol             FOREIGN KEY (id_rol) REFERENCES rol (id_rol),
+    CONSTRAINT ck_usuario_correo_lower    CHECK (correo = lower(correo)),
+    CONSTRAINT ck_usuario_proveedor       CHECK (proveedor IN ('MICROSOFT', 'GOOGLE')),
+    CONSTRAINT ck_usuario_proveedor_id    CHECK ((proveedor IS NULL) = (id_externo IS NULL)),
+    CONSTRAINT ck_usuario_password_bcrypt CHECK (password_hash ~ '^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$')
 );
 
 CREATE UNIQUE INDEX ux_usuario_proveedor_id ON usuario (proveedor, id_externo);
