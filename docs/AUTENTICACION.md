@@ -110,13 +110,18 @@ La matrícula **no** se compara con el correo; así se decidió por la limitaci�
 | `GOOGLE_CLIENT_ID` | `aud` esperado en tokens de Google. |
 | `MICROSOFT_CLIENT_ID` | `aud` esperado en tokens de Microsoft. |
 | `MICROSOFT_TENANT_ID` | Tenant de la UV (valida `tid` e `iss`). |
-| `API_KEY` | Firma del JWT propio (ya existe). |
+| `API_KEY` | Firma del JWT propio (ya existe; mínimo 32 caracteres). |
 | `API_JWT_EXPIRATION` | Vigencia del JWT propio en ms (ya existe). |
+| `AUTH_DEV_HABILITADO` | `true` solo en pruebas: habilita `POST /auth/dev` (§ 8). Por defecto `false`. |
+
+Si falta el Client ID de un proveedor, su endpoint responde `"El acceso con Google no está configurado."` (o con Microsoft). El resto de la API funciona igual.
+
+Los dominios permitidos se configuran en `application.properties` con `auth.google.dominio` (por defecto `gmail.com`) y `auth.microsoft.dominio` (por defecto `estudiantes.uv.mx`).
 
 ### Librerías
 
 - **Frontend:** `@azure/msal-browser` (+ `@azure/msal-react`) y Google Identity Services (`@react-oauth/google`). Ambas entregan el ID token: MSAL en `result.idToken`, Google en `credential`.
-- **Backend:** `spring-boot-starter-oauth2-resource-server` incluye `NimbusJwtDecoder`, que descarga y cachea las JWKS y valida firma y expiración. Se le agregan validadores de `iss`, `aud`, `tid` y dominio. No se usa el login con redirección de Spring (`oauth2-client`), porque el frontend obtiene el token.
+- **Backend:** `spring-security-oauth2-jose` provee `NimbusJwtDecoder`, que descarga y cachea las JWKS y valida firma y expiración. Se le agregan validadores de `iss`, `aud`, `tid` y dominio (clase `VerificadorIdToken`). No se usa el login con redirección de Spring (`oauth2-client`), porque el frontend obtiene el token.
 
 ## 4. JWT propio
 
@@ -126,6 +131,7 @@ Después de verificar al usuario, el backend emite su propio JWT (HS256, igual q
 |---|---|
 | `sub` | Matrícula (`"S23014587"`) |
 | `rol` | `TUTORADO` · `TUTOR` · `ADMIN` |
+| `tipo` | `SESION`. El `tokenRegistro` lleva `REGISTRO` y la API lo rechaza con `401`. |
 | `iat`, `exp` | Emisión y expiración (`API_JWT_EXPIRATION`) |
 
 - Se envía como `Authorization: Bearer <token>`.
@@ -134,13 +140,12 @@ Después de verificar al usuario, el backend emite su propio JWT (HS256, igual q
 
 ## 5. ¿La tabla `usuario` necesita un campo de proveedor?
 
-**Sí, se recomienda.** Propuesta (detalle en [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-recomendados)):
+**Sí; ya está aplicado** en `db/supabase/001_esquema.sql` (detalle en [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-aplicados-al-esquema-recibido)):
 
 ```sql
-ALTER TABLE usuario
-  ADD COLUMN proveedor  varchar(20),   -- 'MICROSOFT' | 'GOOGLE'
-  ADD COLUMN id_externo varchar(255);  -- claim 'sub' del proveedor
-CREATE UNIQUE INDEX ON usuario (proveedor, id_externo);
+proveedor   VARCHAR(20),   -- 'MICROSOFT' | 'GOOGLE'; NULL = pre-registro
+id_externo  VARCHAR(255),  -- claim 'sub' del proveedor
+CREATE UNIQUE INDEX ux_usuario_proveedor_id ON usuario (proveedor, id_externo);
 ```
 
 Motivos:
@@ -215,4 +220,22 @@ Ver detalle en [API.md § Autenticación](API.md#1-autenticación--auth-público
 | `POST` | `/auth/microsoft` | Login con ID token de Microsoft. |
 | `POST` | `/auth/google` | Login con ID token de Google. |
 | `POST` | `/auth/registro` | Completa el primer acceso (matrícula y rol). |
+| `POST` | `/auth/dev` | Solo pruebas (§ 8). |
 | `GET` | `/usuarios/me` | Datos del usuario autenticado. |
+
+## 8. Login de desarrollo
+
+Para probar la API (Postman, frontend local) sin configurar Microsoft ni Google:
+
+1. Arranca el backend con `AUTH_DEV_HABILITADO=true`. Al iniciar, el log muestra una advertencia.
+2. Llama `POST /auth/dev` con `{"correo": "..."}` de un usuario existente. Responde igual que un login normal.
+
+Con `002_datos_prueba.sql` cargado:
+
+| Rol | Usuario | Correo |
+|---|---|---|
+| TUTORADO | Valeria Mendoza Cruz | `zs23014587@estudiantes.uv.mx` |
+| TUTOR | Rocío Hernández Aguilar | `zs21009342@estudiantes.uv.mx` |
+| ADMIN | Adriana Salas Ortega | `asalas@uv.mx` |
+
+Cuando la variable es `false` (el valor por defecto), la ruta no existe y responde `404`. **Nunca actives esta opción en un despliegue accesible desde internet**: cualquiera podría entrar como cualquier usuario sabiendo su correo.

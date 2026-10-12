@@ -2,10 +2,10 @@
 
 Documentación del prototipo de pruebas. Está alineada con:
 
-- **Esquema de BD:** `TutorConnect.sql` (export de dbdiagram), resumido en [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md).
+- **Esquema de BD:** [`db/supabase/001_esquema.sql`](../db/supabase/001_esquema.sql), que parte de `TutorConnect.sql` (dbdiagram) con los cambios descritos en [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md). Diagrama actualizado en [`db/TutorConnect.dbml`](../db/TutorConnect.dbml).
 - **Mockups de escritorio** del 5 oct 2026 (16 pantallas).
 
-> Esta carpeta describe el comportamiento **objetivo** del backend. El código actual todavía corresponde al esquema anterior; la implementación se hará a partir de estos documentos.
+> El backend implementa todo lo descrito aquí. Las pruebas de integración (`src/test`) ejecutan el mismo script de Supabase y verifican los flujos de los mockups.
 
 ## Documentos
 
@@ -14,7 +14,20 @@ Documentación del prototipo de pruebas. Está alineada con:
 | [AUTENTICACION.md](AUTENTICACION.md) | Cómo funciona el login con Microsoft y Google, registro en el primer acceso, JWT propio, campo de proveedor y opciones para entrar al panel de administración. |
 | [API.md](API.md) | Referencia de todos los endpoints: ruta, roles, body, respuesta y validaciones. |
 | [REGLAS_DE_NEGOCIO.md](REGLAS_DE_NEGOCIO.md) | Estados, cupo, choques de horario, sesiones y pase de lista, bajas, recordatorios y correos. |
-| [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md) | Tablas del esquema recibido y cambios recomendados. |
+| [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md) | Tablas, cambios aplicados al esquema recibido y cómo crear la BD en Supabase. |
+
+---
+
+## Cómo correr el backend
+
+1. **Base de datos (Supabase):** en el SQL Editor ejecuta, en orden:
+   1. `db/supabase/001_esquema.sql`: crea el esquema. **Es destructivo**: borra las tablas anteriores.
+   2. `db/supabase/002_datos_prueba.sql` (opcional): datos de los mockups.
+   3. `db/supabase/003_materias_plan_2019.sql` (opcional): catálogo de EE del plan 2019.
+2. **Variables de entorno:** copia `.env.example` a `.env` y llénalo. `DB_URL` es la cadena JDBC de Supabase.
+3. **Arrancar:** `./mvnw spring-boot:run`. Swagger UI queda en `/swagger-ui.html`.
+4. **Probar sin Microsoft ni Google:** con `AUTH_DEV_HABILITADO=true`, `POST /auth/dev` con el correo de un usuario de los datos de prueba (ver [AUTENTICACION.md § 8](AUTENTICACION.md#8-login-de-desarrollo)). **Nunca lo actives en un despliegue público.**
+5. **Pruebas:** `./mvnw test` necesita un PostgreSQL. Por defecto usa `localhost:5433/tutorias_test`; se cambia con `TEST_DB_URL`, `TEST_DB_USERNAME` y `TEST_DB_PASSWORD`. Las pruebas recrean el esquema con el script de Supabase.
 
 ---
 
@@ -71,9 +84,15 @@ Error de validación (`@Valid`) → `400` con `data` = mapa `campo → mensaje`:
 | `400 Bad Request` | Regla de negocio incumplida, recurso inexistente o validación fallida. |
 | `401 Unauthorized` | JWT ausente, inválido o expirado. |
 | `403 Forbidden` | El rol no tiene acceso al endpoint. |
+| `404 Not Found` | La ruta no existe. |
+| `405 Method Not Allowed` | Método HTTP no soportado en la ruta. |
 | `500 Internal Server Error` | Error inesperado. |
 
+Todos los errores, incluidos 401, 403 y 404, usan la envoltura `ApiResponse`.
+
 Cuando un recurso existe pero pertenece a otro usuario (por ejemplo, la tutoría de otro tutor), la respuesta es `400` con el mensaje `"No tienes permiso sobre este recurso."`.
+
+Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: un rol sin permiso con un body inválido recibe `400`, no `403`. En ningún caso se ejecuta la acción.
 
 ---
 
@@ -81,7 +100,7 @@ Cuando un recurso existe pero pertenece a otro usuario (por ejemplo, la tutoría
 
 | # | Pantalla | Rol | Endpoints |
 |---|---|---|---|
-| 01 | Iniciar sesión | — | `POST /auth/microsoft`, `POST /auth/google` |
+| 01 | Iniciar sesión | — | `POST /auth/microsoft`, `POST /auth/google` (pruebas: `POST /auth/dev`) |
 | 02 | Completar registro | — | `POST /auth/registro` |
 | — | Barra lateral (nombre, matrícula, rol) | Todos | `GET /usuarios/me` |
 | 03 | Explorar tutorías | TUTORADO | `GET /tutorias` |
@@ -111,6 +130,7 @@ Cuando un recurso existe pero pertenece a otro usuario (por ejemplo, la tutoría
 | `/asistencia` = inscripción + asistencia | `/inscripciones` y `/sesiones/{id}/lista` | Inscribirse y pasar lista son acciones distintas. |
 | `/calificaciones` | **Eliminado** | Ya no está en el modelo ni en los mockups. |
 | `/materia/{nrc}` (público) | `/materias/{idMateria}` (requiere token) | El NRC se puede editar; el id no cambia. |
+| `@PreAuthorize` sin efecto | Seguridad por método activada | Antes no existía `@EnableMethodSecurity`: los roles por endpoint no se aplicaban. |
 | `/comentarios`, `/temas` | `/tutorias/{id}/comentarios`, `/horarios/{id}/temas` | Comentarios por tutoría; temas por horario. |
 | Matrícula numérica (8 dígitos) | Matrícula texto con `S` (`S23014587`) | `usuario.matricula` vuelve a `varchar(50)`. |
 | Cupo 5 | Cupo 7 | Mockups. |
@@ -121,7 +141,7 @@ También se eliminan la entidad `Permisos` y la columna `asistencia.calificacion
 
 ## Supuestos por confirmar
 
-Puntos que las respuestas no cubrieron. La documentación los asume como se indica; las etiquetas `[S#]` aparecen en los demás documentos donde aplican.
+Puntos que las respuestas no cubrieron. **Ya están implementados así**; si alguno cambia, se ajusta el código. Las etiquetas `[S#]` aparecen en los demás documentos donde aplican.
 
 | Id | Supuesto |
 |---|---|
@@ -131,5 +151,5 @@ Puntos que las respuestas no cubrieron. La documentación los asume como se indi
 | **S4** | Si un tutorado se da de baja voluntariamente y se vuelve a inscribir, su conteo de inasistencias empieza en 0. |
 | **S5** | La baja voluntaria no tiene restricción de horario y envía un correo de confirmación. |
 | **S6** | Un comentario solo lo pueden borrar su autor o un ADMIN. |
-| **S7** | El aviso de "lista sin cerrar" es un correo al tutor que se envía una vez, al llegar la hora de fin de la sesión (ver recomendación en [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-recomendados)). |
-| **S8** | El catálogo de edificios y aulas se importa a una tabla de esta misma BD (ver [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-recomendados)). |
+| **S7** | El aviso de "lista sin cerrar" es un correo al tutor que se envía una vez, al llegar la hora de fin de la sesión (`sesion.fecha_aviso_cierre`). |
+| **S8** | El catálogo de edificios y aulas vive en la tabla `aula` de esta BD. **El script trae edificios 1–2 con aulas 1–12 como provisional**: hay que sustituirlo por la lista real. |

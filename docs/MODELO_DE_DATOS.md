@@ -1,21 +1,43 @@
 # Modelo de datos
 
-Basado en `TutorConnect.sql` (export de dbdiagram). Motor: PostgreSQL. Se crea una **BD nueva**: no se migran datos, porque los actuales son de prueba.
+- **Esquema vigente:** [`db/supabase/001_esquema.sql`](../db/supabase/001_esquema.sql) (PostgreSQL / Supabase).
+- **Diagrama:** [`db/TutorConnect.dbml`](../db/TutorConnect.dbml). Pégalo en [dbdiagram.io](https://dbdiagram.io/d) para regenerar la imagen.
+- **Origen:** `TutorConnect.sql` (dbdiagram, incluido al final), con los cambios de la sección [Cambios aplicados](#cambios-aplicados-al-esquema-recibido).
+
+Se crea una **BD nueva**: no se migran datos, porque los anteriores eran de prueba. Al arrancar, Hibernate valida (`ddl-auto=validate`) que las entidades coincidan con este esquema; si alguien cambia una tabla sin actualizar el código, el backend no arranca.
+
+## Crear la BD en Supabase
+
+1. **Dashboard → SQL Editor → New query**: pega y ejecuta los scripts en orden.
+
+   | Script | Contenido |
+   |---|---|
+   | `001_esquema.sql` | **Destructivo**: borra las tablas del esquema anterior y del actual. Crea el esquema, activa RLS y siembra `rol` y `aula` (provisional). |
+   | `002_datos_prueba.sql` | Opcional. Datos de los mockups: 11 tutorías, 46 inscripciones, historial. Rechaza ejecutarse si ya hay datos. |
+   | `003_materias_plan_2019.sql` | Opcional. 44 EE del plan 2019 de Administración (NRC sintéticos). |
+
+2. **Cadena de conexión:** Project Settings → Database → Connection string (JDBC). Va en `DB_URL`, y el usuario y la contraseña en `DB_USERNAME` y `DB_PASSWORD`.
+3. **Administradores:** se asignan por SQL (ver [AUTENTICACION.md § 6](AUTENTICACION.md#6-opciones-para-entrar-al-panel-de-administración)).
+
+### RLS (Row Level Security)
+
+Supabase expone el esquema `public` por su API REST con la *anon key*. El script **activa RLS sin políticas** en todas las tablas y revoca los permisos de `anon` y `authenticated`, así que nadie puede leer ni escribir por esa vía. El backend se conecta por JDBC con el usuario `postgres`, dueño de las tablas, al que RLS no le aplica. Si en el futuro el backend usa otro rol, habrá que agregar políticas para ese rol o darle `BYPASSRLS`.
 
 ## Tablas
 
 | Tabla | Descripción | Columnas clave |
 |---|---|---|
-| `rol` | Catálogo de roles: `TUTORADO`, `TUTOR`, `ADMIN`. | `rol` único |
-| `usuario` | Persona que entra con Microsoft o Google. Sin contraseña. | PK `matricula varchar(50)` (con `S`), `correo` único, `id_rol` |
+| `rol` | Catálogo: `TUTORADO`, `TUTOR`, `ADMIN`. | `rol` único |
+| `usuario` | Persona que entra con Microsoft o Google. Sin contraseña. | PK `matricula` (con `S`); `correo` único y en minúsculas; `id_rol`; `proveedor` + `id_externo` únicos |
 | `materia` | Experiencia Educativa (EE). | `identificador` (= NRC) único |
-| `tutoria` | Tutoría recurrente de un tutor sobre una EE, en un lugar fijo. | `id_materia`, `matricula_tutor`, `edificio`, `aula`, `estado` (`ACTIVA`/`INACTIVA`) |
-| `horario` | Bloque semanal de la tutoría. | `id_tutoria`, `dia`, `hora_inicio`, `hora_fin`, `estado` (`ACTIVO`/`INACTIVO`) |
-| `temas` | Temas de un horario (máx. 10, 60 caracteres). | `id_horario` |
-| `inscripcion` | Inscripción de un tutorado. | `id_horario`, `matricula_tutorado`, `estado` (`ACTIVA`/`BAJA`/`BAJA_AUTOMATICA`), `fecha_inscripcion`, `fecha_baja` |
-| `sesion` | Ocurrencia de un horario en una fecha; solo existe al abrir la lista o al cancelar. | único (`id_horario`, `fecha`); `fecha_cancelada`, `fecha_lista_abierta`, `fecha_lista_cerrada` |
+| `aula` | Catálogo de lugares. | PK (`edificio`, `aula`) |
+| `tutoria` | Tutoría recurrente de un tutor sobre una EE, en un lugar fijo. | `id_materia`, `matricula_tutor`, FK (`edificio`, `aula`), `estado` (`ACTIVA`/`INACTIVA`) |
+| `horario` | Bloque semanal de la tutoría (lunes a viernes). | `id_tutoria`, `dia`, `hora_inicio` < `hora_fin`, `estado` (`ACTIVO`/`INACTIVO`) |
+| `temas` | Temas de un horario (máx. 10, 60 caracteres). | `id_horario`; único (`id_horario`, `lower(tema)`) |
+| `inscripcion` | Inscripción de un tutorado **a una tutoría**. | `id_tutoria`, `matricula_tutorado`, `estado` (`ACTIVA`/`BAJA`/`BAJA_AUTOMATICA`); única `ACTIVA` por tutorado y tutoría |
+| `sesion` | Ocurrencia de un horario en una fecha; solo existe al abrir la lista o al cancelar. | único (`id_horario`, `fecha`); `fecha_cancelada`, `fecha_lista_abierta`, `fecha_lista_cerrada`, `fecha_aviso_cierre` |
 | `asistencia` | Marca de un inscrito en una sesión. | único (`id_sesion`, `id_inscripcion`); `asistio boolean NOT NULL` |
-| `recordatorio` | Registro de recordatorios enviados (evita duplicados). | único (`id_inscripcion`, `fecha`) |
+| `recordatorio` | Recordatorios enviados (evita duplicados). | único (`id_inscripcion`, `id_horario`, `fecha`) |
 | `comentarios` | Sugerencias de tutorados por tutoría. | `matricula_tutorado`, `id_tutoria`, `fecha_comentario` |
 
 ```mermaid
@@ -23,14 +45,16 @@ erDiagram
     rol ||--o{ usuario : ""
     usuario ||--o{ tutoria : "imparte"
     materia ||--o{ tutoria : ""
+    aula ||--o{ tutoria : "lugar"
     tutoria ||--|{ horario : ""
     horario ||--o{ temas : ""
     horario ||--o{ sesion : ""
-    horario ||--o{ inscripcion : "id_horario (ver cambio 2)"
+    tutoria ||--o{ inscripcion : ""
     usuario ||--o{ inscripcion : "tutorado"
     sesion ||--o{ asistencia : ""
     inscripcion ||--o{ asistencia : ""
     inscripcion ||--o{ recordatorio : ""
+    horario ||--o{ recordatorio : ""
     tutoria ||--o{ comentarios : ""
     usuario ||--o{ comentarios : "tutorado"
 ```
@@ -42,34 +66,25 @@ erDiagram
   - `apellidoP` y `apellidoM` se unen en `apellidos`;
   - `matricula` vuelve a `varchar`;
   - `materia.nrc` pasa a `identificador`.
-- **Se agregan:** `sesion`, `inscripcion`, `recordatorio`.
+- **Se agregan:** `aula`, `sesion`, `inscripcion`, `recordatorio`.
 
 ---
 
-## Cambios recomendados
+## Cambios aplicados al esquema recibido
 
-Ninguno de estos cambios altera el contrato de la API documentada en [API.md](API.md); son mejoras internas. Están ordenados por importancia.
+Todos están en `001_esquema.sql` y en el DBML.
 
-### 1. `usuario`: proveedor e id externo (recomendado)
+### 1. `usuario`: proveedor e id externo
 
-Explicación completa en [AUTENTICACION.md § 5](AUTENTICACION.md#5-la-tabla-usuario-necesita-un-campo-de-proveedor).
+`proveedor` (`MICROSOFT` | `GOOGLE`) + `id_externo` (claim `sub`), únicos en pareja. Las dos columnas son *nullable* para permitir el pre-registro de administradores. Motivo: [AUTENTICACION.md § 5](AUTENTICACION.md#5-la-tabla-usuario-necesita-un-campo-de-proveedor). Además, `correo` se guarda en minúsculas (`CHECK`).
 
-```sql
-ALTER TABLE usuario
-  ADD COLUMN proveedor  varchar(20)  CHECK (proveedor IN ('MICROSOFT', 'GOOGLE')),
-  ADD COLUMN id_externo varchar(255);
-CREATE UNIQUE INDEX ux_usuario_proveedor_id ON usuario (proveedor, id_externo);
-```
-
-Las dos columnas son *nullable* para permitir el pre-registro de administradores.
-
-### 2. `inscripcion`: ligarla a la tutoría en lugar de al horario (recomendado)
+### 2. `inscripcion`: ligada a la tutoría en lugar del horario
 
 **Pregunta:** "Te inscribes a la tutoría, pero tu baja se basa en los horarios a los que faltaste. ¿Se recomiendan cambios?"
 
-**Respuesta: sí.** Conviene cambiar `inscripcion.id_horario` por `inscripcion.id_tutoria`. El dato de "a qué horario faltaste" no se pierde, porque ya está en `asistencia → sesion → horario`.
+**Respuesta: sí.** Se cambió `inscripcion.id_horario` por `inscripcion.id_tutoria`. El dato de "a qué horario faltaste" no se pierde, porque ya está en `asistencia → sesion → horario`.
 
-| | Una fila por horario (esquema actual) | Una fila por tutoría (recomendado) |
+| | Una fila por horario (esquema recibido) | Una fila por tutoría (aplicado) |
 |---|---|---|
 | Inscribirse | N inserts (uno por horario) en una transacción | 1 insert |
 | Darse de baja / baja automática | Actualizar N filas; si falla a medias, quedan estados mezclados | Actualizar 1 fila |
@@ -78,79 +93,35 @@ Las dos columnas son *nullable* para permitir el pre-registro de administradores
 | ¿Aporta información? | No: los horarios solo cambian sin inscritos (RN-5), así que todo inscrito está siempre en **todos** los horarios | — |
 | Saber en qué horario faltó | `asistencia → inscripcion → horario` | `asistencia → sesion → horario` |
 
-```sql
-ALTER TABLE inscripcion DROP COLUMN id_horario;
-ALTER TABLE inscripcion ADD COLUMN id_tutoria int NOT NULL REFERENCES tutoria (id_tutoria);
-CREATE UNIQUE INDEX ux_inscripcion_activa
-  ON inscripcion (id_tutoria, matricula_tutorado) WHERE estado = 'ACTIVA';
-
--- Una tutoría puede tener dos horarios el mismo día; el recordatorio se distingue por horario
-ALTER TABLE recordatorio ADD COLUMN id_horario int NOT NULL REFERENCES horario (id_horario);
-DROP INDEX IF EXISTS recordatorio_id_inscripcion_fecha_idx;
-CREATE UNIQUE INDEX ux_recordatorio ON recordatorio (id_inscripcion, id_horario, fecha);
-```
-
-**Si se mantiene una fila por horario**, el backend debe:
-
-- crear todas las filas en una sola transacción, con el mismo `fecha_inscripcion`;
-- dar de baja todas a la vez;
-- reemplazar el índice no único por:
-
-  ```sql
-  CREATE UNIQUE INDEX ux_inscripcion_activa
-    ON inscripcion (id_horario, matricula_tutorado) WHERE estado = 'ACTIVA';
-  ```
+Como una tutoría puede tener dos horarios el mismo día, `recordatorio` ganó `id_horario` y su llave única es (`id_inscripcion`, `id_horario`, `fecha`).
 
 ### 3. Catálogo de edificios y aulas [S8]
 
-Las columnas `tutoria.edificio` y `tutoria.aula` son `int` sin catálogo. Como la lista viene de otra base de datos, se propone importarla a una tabla y validarla con una FK compuesta. Las columnas de `tutoria` no cambian.
+La tabla `aula` (`edificio`, `aula`), con una FK compuesta desde `tutoria`, alimenta `GET /catalogos/edificios`. **El script siembra edificios 1–2 con aulas 1–12 como provisional**; hay que sustituirlo por la lista real de la BD institucional.
 
-```sql
-CREATE TABLE aula (
-  edificio int NOT NULL,
-  aula     int NOT NULL,
-  PRIMARY KEY (edificio, aula)
-);
-ALTER TABLE tutoria
-  ADD FOREIGN KEY (edificio, aula) REFERENCES aula (edificio, aula);
-```
+### 4. `sesion.fecha_aviso_cierre` [S7]
 
-Alimenta `GET /catalogos/edificios`. Si el catálogo debe consultarse en vivo de la otra BD, hay que definir cómo conectarse a ella.
-
-### 4. `sesion`: marca del aviso de lista sin cerrar [S7]
-
-Permite enviar el aviso al tutor **una sola vez**, aunque el proceso corra cada minuto.
-
-```sql
-ALTER TABLE sesion ADD COLUMN fecha_aviso_cierre timestamptz;
-```
+Marca que ya se envió el correo de "lista sin cerrar", para que el proceso que corre cada minuto lo envíe una sola vez.
 
 ### 5. Restricciones de integridad
 
-```sql
-ALTER TABLE tutoria     ADD CHECK (estado IN ('ACTIVA', 'INACTIVA'));
-ALTER TABLE horario     ADD CHECK (estado IN ('ACTIVO', 'INACTIVO'));
-ALTER TABLE horario     ADD CHECK (dia IN ('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES'));
-ALTER TABLE horario     ADD CHECK (hora_inicio < hora_fin);
-ALTER TABLE sesion      ADD CHECK (hora_inicio < hora_fin);
-ALTER TABLE inscripcion ADD CHECK (estado IN ('ACTIVA', 'BAJA', 'BAJA_AUTOMATICA'));
-ALTER TABLE inscripcion ADD CHECK ((estado = 'ACTIVA') = (fecha_baja IS NULL));
-ALTER TABLE sesion      ADD CHECK (fecha_cancelada IS NULL OR fecha_lista_abierta IS NULL);
-ALTER TABLE sesion      ADD CHECK (fecha_lista_cerrada IS NULL OR fecha_lista_abierta IS NOT NULL);
-```
-
-### 6. Datos iniciales
-
-```sql
-INSERT INTO rol (rol) VALUES ('TUTORADO'), ('TUTOR'), ('ADMIN');
-```
-
-Las Experiencias Educativas se cargan desde la pantalla 16 o con un seed nuevo. El seed actual `db/seeds/S001__materias_admin_plan_2019.sql` usa la columna `nrc` y se tendrá que ajustar a `identificador`.
+| Restricción | Regla |
+|---|---|
+| `ck_tutoria_estado` | `ACTIVA` / `INACTIVA`. |
+| `ck_horario_estado` | `ACTIVO` / `INACTIVO`. |
+| `ck_horario_dia` | Lunes a viernes. |
+| `ck_horario_horas`, `ck_sesion_horas` | `hora_inicio < hora_fin`. |
+| `ck_inscripcion_estado` | `ACTIVA` / `BAJA` / `BAJA_AUTOMATICA`. |
+| `ck_inscripcion_baja` | `fecha_baja` se llena si y solo si el estado no es `ACTIVA`. |
+| `ck_sesion_origen` | Una fila de sesión existe solo si se abrió la lista o se canceló. |
+| `ck_sesion_cancelada` | No se cancela con lista abierta. |
+| `ck_sesion_cierre` | No se cierra sin abrir. |
+| Textos (`ck_*_texto`, `ck_temas_tema`, `ck_materia_nombre`) | No vacíos. |
 
 ### Notas
 
-- **Borrado:** ninguna FK tiene `ON DELETE CASCADE`. Esto es intencional: el historial (sesiones, asistencias, inscripciones) nunca se borra en cascada. Por eso eliminar una EE con tutorías falla (ver `DELETE /materias/{id}`) y los horarios se desactivan en vez de borrarse.
-- **Zona horaria:** las columnas `timestamptz` guardan el instante absoluto. Las columnas `date` y `time` (`sesion.fecha`, `horario.hora_inicio`) se interpretan en `America/Mexico_City`.
+- **Borrado:** ninguna FK tiene `ON DELETE CASCADE`. Es intencional: el historial (sesiones, asistencias, inscripciones) nunca se borra en cascada. Por eso eliminar una EE con tutorías falla y los horarios se desactivan en vez de borrarse.
+- **Zona horaria:** las columnas `timestamptz` guardan el instante absoluto. Las columnas `date` y `time` (`sesion.fecha`, `horario.hora_inicio`) se interpretan en `America/Mexico_City`, sin importar la zona del servidor ni de Supabase (UTC).
 
 ---
 
