@@ -1,23 +1,24 @@
 -- =====================================================================
--- Seed S001 — Materias del Plan 2019 (Administración FNT)
+-- Seed 003 — Materias del Plan 2019 (Administración FNT) [opcional]
 -- =====================================================================
 -- Carga las materias de las áreas BID (Iniciación a la Disciplina) y
 -- D (Disciplinar) del mapa curricular Plan 2019.
 --
 -- Idempotente: usa WHERE NOT EXISTS para que sea seguro re-ejecutar.
--- La condicion de unicidad es el NRC.
+-- La condicion de unicidad es el NRC (columna identificador).
 --
 -- NRCs: actualmente sinteticos (10001-10044) por carecer de los reales.
 -- Si se cuentan con los NRCs oficiales, sustituirlos en la columna nrc
 -- de cada fila de la clausula VALUES antes de aplicar el seed.
+-- Requiere haber ejecutado 001_esquema.sql.
 --
 -- Como aplicar:
---   psql -h <host> -U <user> -d <db> -f db/seeds/S001__materias_admin_plan_2019.sql
+--   psql "<connection string>" -f db/supabase/003_materias_plan_2019.sql
 -- =====================================================================
 
 BEGIN;
 
-INSERT INTO materia (materia, nrc)
+INSERT INTO materia (materia, identificador)
 SELECT v.materia, v.nrc
 FROM (VALUES
     -- ----- BID (Iniciación a la Disciplina, 77 créditos) -----
@@ -69,7 +70,7 @@ FROM (VALUES
     ('Transformación Digital en las Organizaciones',             10044)
 ) AS v(materia, nrc)
 WHERE NOT EXISTS (
-    SELECT 1 FROM materia m WHERE m.nrc = v.nrc
+    SELECT 1 FROM materia m WHERE m.identificador = v.nrc
 );
 
 COMMIT;
@@ -77,4 +78,4 @@ COMMIT;
 -- Verificacion
 SELECT COUNT(*) AS materias_admin_2019
 FROM materia
-WHERE nrc BETWEEN 10001 AND 10044;
+WHERE identificador BETWEEN 10001 AND 10044;
