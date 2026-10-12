@@ -3,5 +3,9 @@ package com.codespace.tutorias.Repositories;
 import com.codespace.tutorias.Models.Rol;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface RolRepository extends JpaRepository<Rol,Integer> {
+import java.util.Optional;
+
+public interface RolRepository extends JpaRepository<Rol, Integer> {
+
+    Optional<Rol> findByRol(String rol);
 }

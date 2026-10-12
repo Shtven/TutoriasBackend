@@ -1,0 +1,120 @@
+// Sistema de Tutorias — diagrama para dbdiagram.io
+// Refleja db/supabase/001_esquema.sql. Pegar en https://dbdiagram.io/d para regenerar el diagrama.
+
+Table rol {
+  id_rol int [pk, increment]
+  rol varchar(50) [not null, unique, note: 'TUTORADO | TUTOR | ADMIN']
+}
+
+Table usuario {
+  matricula varchar(50) [pk, note: 'Con prefijo S: S23014587']
+  nombre varchar(50) [not null]
+  apellidos varchar(200) [not null]
+  correo varchar(255) [not null, unique, note: 'En minusculas']
+  id_rol int [not null, ref: > rol.id_rol]
+  proveedor varchar(20) [note: 'MICROSOFT | GOOGLE; NULL = pre-registro']
+  id_externo varchar(255) [note: 'Claim sub del proveedor']
+
+  indexes {
+    (proveedor, id_externo) [unique]
+  }
+}
+
+Table materia {
+  id_materia int [pk, increment]
+  materia varchar(100) [not null]
+  identificador int [not null, unique, note: 'NRC']
+}
+
+Table aula {
+  edificio int [not null]
+  aula int [not null]
+
+  indexes {
+    (edificio, aula) [pk]
+  }
+}
+
+Table tutoria {
+  id_tutoria int [pk, increment]
+  id_materia int [not null, ref: > materia.id_materia]
+  matricula_tutor varchar(50) [not null, ref: > usuario.matricula]
+  edificio int [not null]
+  aula int [not null]
+  estado varchar(50) [not null, default: 'ACTIVA', note: 'ACTIVA | INACTIVA']
+}
+
+Ref: tutoria.(edificio, aula) > aula.(edificio, aula)
+
+Table horario {
+  id_horario int [pk, increment]
+  id_tutoria int [not null, ref: > tutoria.id_tutoria]
+  dia varchar(50) [not null, note: 'LUNES..VIERNES']
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  estado varchar(50) [not null, default: 'ACTIVO', note: 'ACTIVO | INACTIVO']
+}
+
+Table temas {
+  id_tema int [pk, increment]
+  tema varchar(60) [not null]
+  id_horario int [not null, ref: > horario.id_horario]
+}
+
+Table inscripcion {
+  id_inscripcion int [pk, increment]
+  id_tutoria int [not null, ref: > tutoria.id_tutoria]
+  matricula_tutorado varchar(50) [not null, ref: > usuario.matricula]
+  fecha_inscripcion timestamptz [not null]
+  estado varchar(50) [not null, note: 'ACTIVA | BAJA | BAJA_AUTOMATICA']
+  fecha_baja timestamptz
+
+  Note: 'Unica ACTIVA por (id_tutoria, matricula_tutorado)'
+}
+
+Table sesion {
+  id_sesion int [pk, increment]
+  id_horario int [not null, ref: > horario.id_horario]
+  fecha date [not null]
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  fecha_cancelada timestamptz
+  fecha_lista_abierta timestamptz
+  fecha_lista_cerrada timestamptz
+  fecha_aviso_cierre timestamptz
+
+  indexes {
+    (id_horario, fecha) [unique]
+  }
+}
+
+Table asistencia {
+  id_asistencia int [pk, increment]
+  id_sesion int [not null, ref: > sesion.id_sesion]
+  id_inscripcion int [not null, ref: > inscripcion.id_inscripcion]
+  asistio boolean [not null]
+
+  indexes {
+    (id_sesion, id_inscripcion) [unique]
+  }
+}
+
+Table recordatorio {
+  id_recordatorio int [pk, increment]
+  id_inscripcion int [not null, ref: > inscripcion.id_inscripcion]
+  id_horario int [not null, ref: > horario.id_horario]
+  fecha date [not null]
+  fecha_envio timestamptz [not null]
+
+  indexes {
+    (id_inscripcion, id_horario, fecha) [unique]
+  }
+}
+
+Table comentarios {
+  id_comentario int [pk, increment]
+  matricula_tutorado varchar(50) [not null, ref: > usuario.matricula]
+  comentario varchar(255) [not null]
+  id_tutoria int [not null, ref: > tutoria.id_tutoria]
+  fecha_comentario timestamptz [not null]
+}

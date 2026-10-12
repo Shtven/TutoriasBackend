@@ -2,51 +2,50 @@ package com.codespace.tutorias.Controllers;
 
 import com.codespace.tutorias.DTO.Request.MateriaRequest;
 import com.codespace.tutorias.Exceptions.ApiResponse;
-import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Services.MateriaService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/** Experiencias Educativas (pantalla 16). */
 @RestController
-@RequestMapping("/materia")
+@RequestMapping("/materias")
 public class MateriaController {
 
     @Autowired
     private MateriaService materiaService;
 
-    @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<?> crearMateria(@RequestBody MateriaRequest materia) {
-        materiaService.createMateria(materia);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Materia creada.", null));
-    }
-
-    @GetMapping("/{nrc}")
-    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> obtenerMateria(@PathVariable int nrc) {
-        Materia materia = materiaService.getMateria(nrc);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Materia", materia));
-    }
-
     @GetMapping
     @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
-    public ResponseEntity<?> listarMaterias() {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Materias", materiaService.getMaterias()));
+    public ResponseEntity<?> listar(@RequestParam(required = false) String q) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Experiencias educativas", materiaService.listar(q)));
     }
 
-    @DeleteMapping("/{nrc}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<?> eliminarMateria(@PathVariable int nrc) {
-        materiaService.deleteMateria(nrc);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Materia eliminada.", null));
+    @GetMapping("/{idMateria}")
+    @PreAuthorize("hasAnyRole('TUTOR', 'ADMIN')")
+    public ResponseEntity<?> obtener(@PathVariable int idMateria) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Experiencia educativa", materiaService.obtener(idMateria)));
     }
 
-    @PutMapping("/{nrc}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<?> actualizarMateria(@PathVariable int nrc, @RequestBody MateriaRequest materia) {
-        materiaService.updateMateria(nrc, materia);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Materia actualizada.", null));
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> crear(@Valid @RequestBody MateriaRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Experiencia educativa creada.", materiaService.crear(request)));
+    }
+
+    @PutMapping("/{idMateria}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> actualizar(@PathVariable int idMateria, @Valid @RequestBody MateriaRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Experiencia educativa actualizada.",
+                materiaService.actualizar(idMateria, request)));
+    }
+
+    @DeleteMapping("/{idMateria}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> eliminar(@PathVariable int idMateria) {
+        materiaService.eliminar(idMateria);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Experiencia educativa eliminada.", null));
     }
 }

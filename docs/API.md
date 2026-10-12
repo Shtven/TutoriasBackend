@@ -134,12 +134,15 @@ Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT prop
       "matricula": "S23014587",
       "nombre": "Valeria",
       "apellidos": "Mendoza Cruz",
-      "correo": "zS23014587@estudiantes.uv.mx",
-      "rol": "TUTORADO"
+      "correo": "zs23014587@estudiantes.uv.mx",
+      "rol": "TUTORADO",
+      "proveedor": "MICROSOFT"
     }
   }
 }
 ```
+
+El correo siempre se guarda y se devuelve en minúsculas.
 
 **Response 200 — primer acceso**
 ```json
@@ -152,7 +155,7 @@ Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT prop
     "perfil": {
       "nombre": "Sofía",
       "apellidos": "Ramos Gutiérrez",
-      "correo": "zS24011236@estudiantes.uv.mx",
+      "correo": "zs24011236@estudiantes.uv.mx",
       "proveedor": "MICROSOFT"
     }
   }
@@ -166,6 +169,8 @@ Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT prop
 | `Token del proveedor inválido o expirado.` | Firma, `iss`, `aud` o `exp` no válidos. |
 | `Solo se permiten cuentas @estudiantes.uv.mx.` | Microsoft: `tid` o dominio distinto. |
 | `Solo se permiten cuentas @gmail.com.` | Google: dominio distinto o `email_verified = false`. |
+| `El acceso con Google no está configurado.` | Falta `GOOGLE_CLIENT_ID` (o `MICROSOFT_CLIENT_ID` / `MICROSOFT_TENANT_ID`). |
+| `Este correo ya está ligado a otra cuenta.` | El correo existe con otra identidad del proveedor. |
 
 ---
 
@@ -184,9 +189,23 @@ Completa el primer acceso (pantalla 02). Nombre, apellidos, correo y proveedor s
 |---|---|
 | `tokenRegistro` | Firmado por el backend y vigente (15 min). |
 | `matricula` | Se aplica `trim`, se quita el prefijo `z` si viene y la `S` se pasa a mayúscula. Debe quedar `S` + 8 dígitos (`S24011236`). Única: `"La matrícula ya está registrada con otra cuenta."` |
-| `rol` | `TUTORADO` o `TUTOR`. Cualquier otro valor (incluido `ADMIN`) → `"Rol inválido."` |
+| `rol` | `TUTORADO` o `TUTOR` (sin distinguir mayúsculas). Cualquier otro valor (incluido `ADMIN`) → `"Rol inválido."` |
+| — | Token de registro vencido o inválido → `"El registro expiró. Vuelve a iniciar sesión."` |
 
-**Response 200** → igual que el login de un usuario registrado (`registroPendiente: false`, `token`, `usuario`), con `message: "Registro exitoso."`.
+**Response 200** → igual que el login de un usuario registrado (`registroPendiente: false`, `token`, `usuario`), con `message: "Registro exitoso."`. Si el formulario se envía dos veces, la segunda llamada solo inicia sesión.
+
+---
+
+### `POST /auth/dev` — solo pruebas
+
+Existe solo si `AUTH_DEV_HABILITADO=true`; si no, la ruta responde `404`. Inicia sesión por correo sin pasar por el proveedor (ver [AUTENTICACION.md § 8](AUTENTICACION.md#8-login-de-desarrollo)).
+
+**Body**
+```json
+{ "correo": "zs23014587@estudiantes.uv.mx" }
+```
+
+**Response 200** → igual que un login registrado. Error: `"No existe un usuario con ese correo."`
 
 ---
 
@@ -205,7 +224,7 @@ Datos del usuario autenticado (barra lateral).
     "matricula": "S23014587",
     "nombre": "Valeria",
     "apellidos": "Mendoza Cruz",
-    "correo": "zS23014587@estudiantes.uv.mx",
+    "correo": "zs23014587@estudiantes.uv.mx",
     "rol": "TUTORADO",
     "proveedor": "MICROSOFT"
   }
@@ -226,7 +245,7 @@ Catálogo ordenado por nombre. El tutor lo usa en el select de "Crear tutoría";
 
 | Param | Tipo | Descripción |
 |---|---|---|
-| `q` | string | Opcional. Busca en el nombre (sin distinguir mayúsculas ni acentos) o por NRC exacto. |
+| `q` | string | Opcional. Busca en el nombre (sin distinguir mayúsculas ni acentos) o en el NRC (coincidencia parcial). |
 
 **Response 200**
 ```json
@@ -302,7 +321,7 @@ Edificios con sus aulas, para los selects de la pantalla 10. El origen del catá
 
 | Param | Tipo | Descripción |
 |---|---|---|
-| `q` | string | Busca en el nombre de la EE o del tutor. |
+| `q` | string | Busca en el nombre de la EE, el NRC o el nombre del tutor (sin distinguir mayúsculas ni acentos). |
 | `dia` | string | `LUNES`…`VIERNES`: solo tutorías con algún horario ese día. |
 | `soloConLugar` | boolean | Solo con `cupo.disponibles > 0`. |
 | `ocultarChoques` | boolean | Excluye las que chocan con las inscripciones activas del tutorado (RN-4). |
@@ -493,6 +512,7 @@ Comportamiento con los horarios:
 | Tutoría `ACTIVA`. | `La tutoría no está activa.` |
 | 0 inscritos activos. | `No se pueden cambiar horarios ni lugar con tutorados inscritos.` |
 | Ningún pase de lista abierto. | `Cierra el pase de lista abierto antes de editar.` |
+| Cada `idHorario` enviado es un horario `ACTIVO` de esta tutoría y no se repite. | `El horario 31 no pertenece a esta tutoría, no está activo o viene repetido.` |
 
 **Response 200** → `message: "Tutoría actualizada."`, `data`: tutoría actualizada.
 
@@ -636,7 +656,7 @@ Los temas pertenecen a un horario y **sí se pueden modificar con inscritos** (p
 
 ## 7. Inscripciones — `/inscripciones`
 
-Para el cliente, la inscripción es **a la tutoría**: el tutorado queda en todos sus horarios activos. Los endpoints se identifican por `idTutoria`, así que el contrato no cambia aunque en BD haya una fila por horario o una por tutoría (ver [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-recomendados)).
+La inscripción es **a la tutoría**: el tutorado queda en todos sus horarios activos. En BD es una fila de `inscripcion` por tutoría (cambio 2 de [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-aplicados-al-esquema-recibido)); los endpoints se identifican por `idTutoria`.
 
 ### `POST /inscripciones` — `TUTORADO`
 
@@ -1077,6 +1097,7 @@ Desactiva **todas** las tutorías `ACTIVA` al terminar el periodo. Aplica los ef
 | Ruta | TUTORADO | TUTOR | ADMIN |
 |---|:-:|:-:|:-:|
 | `POST /auth/microsoft`, `/auth/google`, `/auth/registro` | público | público | público |
+| `POST /auth/dev` (solo con `AUTH_DEV_HABILITADO=true`) | público | público | público |
 | `GET /usuarios/me` | ✅ | ✅ | ✅ |
 | `GET /materias`, `GET /materias/{id}` | — | ✅ | ✅ |
 | `POST/PUT/DELETE /materias…` | — | — | ✅ |

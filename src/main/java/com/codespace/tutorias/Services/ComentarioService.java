@@ -1,92 +1,83 @@
 package com.codespace.tutorias.Services;
 
-import com.codespace.tutorias.DTO.Mapping.ComentarioMapping;
-import com.codespace.tutorias.DTO.Request.ComentarioRequest;
 import com.codespace.tutorias.DTO.Responsive.ComentarioResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
+import com.codespace.tutorias.Helpers.EstadosInscripcion;
 import com.codespace.tutorias.Helpers.EstadosTutoria;
+import com.codespace.tutorias.Helpers.Reloj;
+import com.codespace.tutorias.Helpers.Roles;
 import com.codespace.tutorias.Models.Comentario;
 import com.codespace.tutorias.Models.Tutoria;
-import com.codespace.tutorias.Models.Usuario;
-import com.codespace.tutorias.Repositories.AsistenciaRepository;
 import com.codespace.tutorias.Repositories.ComentarioRepository;
-import com.codespace.tutorias.Repositories.TutoriaRepository;
-import com.codespace.tutorias.Repositories.UsuarioRepository;
+import com.codespace.tutorias.Repositories.InscripcionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/** Comentarios y sugerencias por tutoría (RN-16). */
 @Service
 public class ComentarioService {
 
-    private static final int LIMITE_CARACTERES = 255;
-
     @Autowired
     private ComentarioRepository comentarioRepository;
+
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private InscripcionRepository inscripcionRepository;
+
     @Autowired
-    private TutoriaRepository tutoriaRepository;
+    private TutoriaService tutoriaService;
+
     @Autowired
-    private AsistenciaRepository asistenciaRepository;
+    private UsuarioService usuarioService;
+
     @Autowired
-    private ComentarioMapping comentarioMapping;
+    private Reloj reloj;
 
-    public void crearComentario(ComentarioRequest request, Integer matricula) {
-
-        if (request.getComentario() == null || request.getComentario().trim().isEmpty()) {
-            throw new BusinessException("El comentario no puede estar vacío.");
-        }
-
-        String texto = request.getComentario().trim();
-
-        if (texto.length() > LIMITE_CARACTERES) {
-            throw new BusinessException(
-                    "El comentario supera el límite de " + LIMITE_CARACTERES + " caracteres.");
-        }
-
-        Usuario usuario = usuarioRepository.findById(matricula)
-                .orElseThrow(() -> new BusinessException("El usuario no existe"));
-
-        Tutoria tutoria = tutoriaRepository.findById(request.getIdTutoria())
-                .orElseThrow(() -> new BusinessException("La tutoría no existe"));
-
-        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
-            throw new BusinessException("Solo puedes comentar tutorías programadas.");
-        }
-
-        if (asistenciaRepository.findByMatriculaTutoria(matricula, request.getIdTutoria()).isEmpty()) {
-            throw new BusinessException("Debes estar inscrito en la tutoría para comentar.");
-        }
-
-        comentarioRepository.save(comentarioMapping.toEntity(tutoria, usuario, texto));
+    @Transactional(readOnly = true)
+    public List<ComentarioResponsive> listar(int idTutoria, String matricula) {
+        tutoriaService.buscar(idTutoria);
+        return comentarioRepository.findByTutoria_IdTutoriaOrderByFechaComentarioDescIdComentarioDesc(idTutoria)
+                .stream().map(c -> toDTO(c, matricula)).toList();
     }
 
-    public List<ComentarioResponsive> listarPorTutoria(int idTutoria) {
-
-        if (!tutoriaRepository.existsById(idTutoria)) {
-            throw new BusinessException("La tutoría no existe");
+    @Transactional
+    public ComentarioResponsive publicar(int idTutoria, String matricula, String texto) {
+        Tutoria tutoria = tutoriaService.buscar(idTutoria);
+        if (!EstadosTutoria.ACTIVA.equals(tutoria.getEstado())) {
+            throw new BusinessException("La tutoría no está activa.");
+        }
+        if (!inscripcionRepository.existsByTutoria_IdTutoriaAndTutorado_MatriculaAndEstado(
+                idTutoria, matricula, EstadosInscripcion.ACTIVA)) {
+            throw new BusinessException("Inscríbete para dejar comentarios.");
         }
 
-        return comentarioRepository.findByTutoriaIdTutoria(idTutoria)
-                .stream().map(comentarioMapping::toDTO).toList();
+        Comentario comentario = new Comentario();
+        comentario.setTutoria(tutoria);
+        comentario.setTutorado(usuarioService.buscar(matricula));
+        comentario.setComentario(texto.trim());
+        comentario.setFechaComentario(reloj.marca());
+        return toDTO(comentarioRepository.save(comentario), matricula);
     }
 
-    public List<ComentarioResponsive> listarPorTutorado(Integer matricula) {
-        return comentarioRepository.findByUsuarioMatricula(matricula)
-                .stream().map(comentarioMapping::toDTO).toList();
-    }
-
-    public void eliminarComentario(int idComentario, Integer matricula) {
-
+    @Transactional
+    public void eliminar(int idComentario, String matricula, String rol) {
         Comentario comentario = comentarioRepository.findById(idComentario)
-                .orElseThrow(() -> new BusinessException("El comentario no existe"));
-
-        if (!comentario.getUsuario().getMatricula().equals(matricula)) {
-            throw new BusinessException("No puedes eliminar comentarios de otros usuarios.");
+                .orElseThrow(() -> new BusinessException("Comentario no encontrado."));
+        if (!Roles.ADMIN.equals(rol) && !comentario.getTutorado().getMatricula().equals(matricula)) {
+            throw new BusinessException("No tienes permiso sobre este recurso.");
         }
-
         comentarioRepository.delete(comentario);
+    }
+
+    private static ComentarioResponsive toDTO(Comentario c, String matricula) {
+        return new ComentarioResponsive(
+                c.getIdComentario(),
+                c.getTutorado().getMatricula(),
+                c.getTutorado().nombreCompleto(),
+                c.getComentario(),
+                Reloj.enZona(c.getFechaComentario()),
+                c.getTutorado().getMatricula().equals(matricula));
     }
 }

@@ -1,30 +1,9 @@
 package com.codespace.tutorias.DTO.Request;
 
-public class ComentarioRequest {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-    private int idTutoria;
-    private String comentario;
-
-    public ComentarioRequest() {}
-
-    public ComentarioRequest(int idTutoria, String comentario) {
-        this.idTutoria = idTutoria;
-        this.comentario = comentario;
-    }
-
-    public int getIdTutoria() {
-        return idTutoria;
-    }
-
-    public void setIdTutoria(int idTutoria) {
-        this.idTutoria = idTutoria;
-    }
-
-    public String getComentario() {
-        return comentario;
-    }
-
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
-    }
-}
+public record ComentarioRequest(
+        @NotBlank(message = "El comentario es obligatorio.")
+        @Size(max = 255, message = "El comentario no puede exceder 255 caracteres.") String comentario
+) {}

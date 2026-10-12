@@ -3,53 +3,40 @@ package com.codespace.tutorias.Controllers;
 import com.codespace.tutorias.DTO.Request.ComentarioRequest;
 import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.ComentarioService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/comentarios")
 public class ComentarioController {
 
     @Autowired
     private ComentarioService comentarioService;
 
-    @PostMapping
-    @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> crearComentario(
-            @RequestAttribute("matricula") Integer matricula,
-            @RequestBody ComentarioRequest request) {
-
-        comentarioService.crearComentario(request, matricula);
-
-        return ResponseEntity.ok(new ApiResponse<>(true, "Comentario registrado.", null));
+    @GetMapping("/tutorias/{idTutoria}/comentarios")
+    @PreAuthorize("hasAnyRole('TUTORADO', 'TUTOR', 'ADMIN')")
+    public ResponseEntity<?> listar(@PathVariable int idTutoria,
+                                    @RequestAttribute("matricula") String matricula) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Comentarios", comentarioService.listar(idTutoria, matricula)));
     }
 
-    @GetMapping("/tutoria/{idTutoria}")
-    @PreAuthorize("hasAnyRole('TUTOR', 'TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> listarPorTutoria(@PathVariable int idTutoria) {
-
-        return ResponseEntity.ok(new ApiResponse<>(
-                true, "Comentarios de la tutoría", comentarioService.listarPorTutoria(idTutoria)));
+    @PostMapping("/tutorias/{idTutoria}/comentarios")
+    @PreAuthorize("hasRole('TUTORADO')")
+    public ResponseEntity<?> publicar(@PathVariable int idTutoria,
+                                      @Valid @RequestBody ComentarioRequest request,
+                                      @RequestAttribute("matricula") String matricula) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Comentario publicado.",
+                comentarioService.publicar(idTutoria, matricula, request.comentario())));
     }
 
-    @GetMapping("/mis-comentarios")
+    @DeleteMapping("/comentarios/{idComentario}")
     @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> misComentarios(@RequestAttribute("matricula") Integer matricula) {
-
-        return ResponseEntity.ok(new ApiResponse<>(
-                true, "Mis comentarios", comentarioService.listarPorTutorado(matricula)));
-    }
-
-    @DeleteMapping("/{idComentario}")
-    @PreAuthorize("hasAnyRole('TUTORADO', 'ADMIN')")
-    public ResponseEntity<?> eliminarComentario(
-            @PathVariable int idComentario,
-            @RequestAttribute("matricula") Integer matricula) {
-
-        comentarioService.eliminarComentario(idComentario, matricula);
-
+    public ResponseEntity<?> eliminar(@PathVariable int idComentario,
+                                      @RequestAttribute("matricula") String matricula,
+                                      @RequestAttribute("rol") String rol) {
+        comentarioService.eliminar(idComentario, matricula, rol);
         return ResponseEntity.ok(new ApiResponse<>(true, "Comentario eliminado.", null));
     }
 }

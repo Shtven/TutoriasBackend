@@ -1,9 +1,10 @@
 package com.codespace.tutorias.Controllers;
 
-import com.codespace.tutorias.DTO.Request.LoginRequest;
-import com.codespace.tutorias.DTO.Request.RegisterRequest;
+import com.codespace.tutorias.DTO.Request.IdTokenRequest;
+import com.codespace.tutorias.DTO.Request.RegistroRequest;
+import com.codespace.tutorias.DTO.Responsive.LoginResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
-import com.codespace.tutorias.Services.UsuarioService;
+import com.codespace.tutorias.Services.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,16 +15,25 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     @Autowired
-    private UsuarioService usuarioService;
+    private AuthService authService;
 
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody RegisterRequest register){
-        usuarioService.register(register);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Registro exitoso.", null));
+    @PostMapping("/microsoft")
+    public ResponseEntity<?> loginMicrosoft(@Valid @RequestBody IdTokenRequest request) {
+        return respuestaLogin(authService.loginMicrosoft(request.idToken()));
     }
 
-    @PostMapping("/signin")
-    public ResponseEntity<?> signin(@RequestBody LoginRequest login){
-        return ResponseEntity.ok(new ApiResponse<>(true, "Login", usuarioService.login(login)));
+    @PostMapping("/google")
+    public ResponseEntity<?> loginGoogle(@Valid @RequestBody IdTokenRequest request) {
+        return respuestaLogin(authService.loginGoogle(request.idToken()));
+    }
+
+    @PostMapping("/registro")
+    public ResponseEntity<?> registro(@Valid @RequestBody RegistroRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Registro exitoso.", authService.registrar(request)));
+    }
+
+    private ResponseEntity<?> respuestaLogin(LoginResponsive login) {
+        String mensaje = login.registroPendiente() ? "Registro pendiente" : "Login";
+        return ResponseEntity.ok(new ApiResponse<>(true, mensaje, login));
     }
 }

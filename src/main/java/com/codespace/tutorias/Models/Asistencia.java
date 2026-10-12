@@ -1,36 +1,31 @@
 package com.codespace.tutorias.Models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+/** Marca de un inscrito en una sesión. "Sin marca" = no existe la fila. */
 @Entity
 public class Asistencia {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idAsistencia;
-    @JsonBackReference
+
     @ManyToOne
-    @JoinColumn(name = "id_tutoria")
-    private Tutoria tutoria;
-    @JsonIgnore
+    @JoinColumn(name = "id_sesion")
+    private Sesion sesion;
+
     @ManyToOne
-    @JoinColumn(name = "matricula")
-    private Usuario usuario;
+    @JoinColumn(name = "id_inscripcion")
+    private Inscripcion inscripcion;
 
     private boolean asistio;
 
-    @Column(name = "calificacion")
-    private Integer calificacion;
-
-
     public Asistencia() {}
 
-    public Asistencia(int idAsistencia, Tutoria tutoria, Usuario usuario) {
-        this.idAsistencia = idAsistencia;
-        this.tutoria = tutoria;
-        this.usuario = usuario;
+    public Asistencia(Sesion sesion, Inscripcion inscripcion, boolean asistio) {
+        this.sesion = sesion;
+        this.inscripcion = inscripcion;
+        this.asistio = asistio;
     }
 
     public int getIdAsistencia() {
@@ -41,20 +36,20 @@ public class Asistencia {
         this.idAsistencia = idAsistencia;
     }
 
-    public Tutoria getTutoria() {
-        return tutoria;
+    public Sesion getSesion() {
+        return sesion;
     }
 
-    public void setTutoria(Tutoria tutoria) {
-        this.tutoria = tutoria;
+    public void setSesion(Sesion sesion) {
+        this.sesion = sesion;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
+    public Inscripcion getInscripcion() {
+        return inscripcion;
     }
 
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
+    public void setInscripcion(Inscripcion inscripcion) {
+        this.inscripcion = inscripcion;
     }
 
     public boolean isAsistio() {
@@ -63,13 +58,5 @@ public class Asistencia {
 
     public void setAsistio(boolean asistio) {
         this.asistio = asistio;
-    }
-
-    public Integer getCalificacion() {
-        return calificacion;
-    }
-
-    public void setCalificacion(Integer calificacion) {
-        this.calificacion = calificacion;
     }
 }

@@ -141,7 +141,7 @@ stateDiagram-v2
   2. la sesión ya inició;
   3. la sesión no está cancelada.
 - Al cerrar: `fecha_lista_cerrada = ahora`, la lista deja de ser editable y se calculan las bajas automáticas (RN-11).
-- **No se cierra automáticamente.** Si llega `horaFin` y la lista sigue abierta, se envía **un aviso por correo al tutor** [S7]. Además, la UI muestra la advertencia (`Sesion.terminada`) y las listas de días anteriores aparecen en `listasSinCerrar`.
+- **No se cierra automáticamente.** Si llega `horaFin` y la lista sigue abierta, se envía **un aviso por correo al tutor**, una sola vez: queda registrado en `sesion.fecha_aviso_cierre` [S7]. Además, la UI muestra la advertencia (`Sesion.terminada`) y las listas de días anteriores aparecen en `listasSinCerrar`.
 
 ### RN-10 · Conteo de inasistencias
 - Inasistencia = marca `asistio = false` en una sesión `COMPLETADA`.
@@ -193,9 +193,11 @@ Un proceso programado (cada minuto) hace lo siguiente:
 3. Por cada inscripción `ACTIVA` que **no** tenga un `recordatorio` para (`id_inscripcion`, hoy):
    - envía el correo;
    - inserta la fila (`fecha` = hoy, `fecha_envio` = ahora).
-4. El índice único (`id_inscripcion`, `fecha`) evita duplicados aunque el proceso corra dos veces. Con el cambio 2 de [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-recomendados), la llave pasa a ser (`id_inscripcion`, `id_horario`, `fecha`).
+4. El índice único (`id_inscripcion`, `fecha`) evita duplicados aunque el proceso corra dos veces. En el esquema vigente la llave es (`id_inscripcion`, `id_horario`, `fecha`), porque una tutoría puede tener dos horarios el mismo día.
 
 Si alguien se inscribe a menos de 2 horas del inicio, recibe el recordatorio en la siguiente ejecución.
+
+Los dos procesos automáticos (recordatorio y aviso de lista sin cerrar) se apagan con `app.tareas.habilitadas=false`; las pruebas lo hacen así y llaman a los procesos directamente.
 
 ### RN-18 · Correos que envía el sistema
 

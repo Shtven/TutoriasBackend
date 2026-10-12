@@ -1,84 +1,74 @@
 package com.codespace.tutorias.DTO.Mapping;
 
-import com.codespace.tutorias.DTO.Request.ActualizarTutoriaRequest;
-import com.codespace.tutorias.DTO.Request.TutoriaRequest;
-import com.codespace.tutorias.Helpers.EstadosTutoria;
-import com.codespace.tutorias.DTO.Responsive.TemaResponsive;
-import com.codespace.tutorias.DTO.Responsive.TutoriaResponsive;
-import com.codespace.tutorias.Models.Asistencia;
+import com.codespace.tutorias.DTO.Responsive.*;
+import com.codespace.tutorias.Helpers.Reglas;
 import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Models.Tema;
 import com.codespace.tutorias.Models.Tutoria;
+import com.codespace.tutorias.Services.AgendaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class TutoriaMapping {
 
     @Autowired
-    private TemaMapping temaMapping;
+    private UsuarioMapping usuarioMapping;
 
-    public Tutoria toEntity(TutoriaRequest request, Materia materia, Horario horario) {
-        Tutoria entity = new Tutoria();
-        List<Asistencia> asistencias = new ArrayList<>();
-        entity.setAula(request.getAula());
-        entity.setMateria(materia);
-        entity.setHorario(horario);
-        entity.setEdificio(request.getEdificio());
-        entity.setAsistencias(asistencias);
-        entity.setFecha(request.getFecha());
-        entity.setEstado(EstadosTutoria.PROGRAMADA);
-
-        List<Tema> temas = new ArrayList<>();
-        if (request.getTemas() != null) {
-            for (String texto : request.getTemas()) {
-                if (texto != null && !texto.trim().isEmpty()) {
-                    temas.add(temaMapping.toEntity(texto.trim(), entity));
-                }
-            }
-        }
-        entity.setTemas(temas);
-        return entity;
+    public MateriaResponsive toDTO(Materia materia) {
+        return new MateriaResponsive(materia.getIdMateria(), materia.getMateria(), materia.getIdentificador());
     }
 
-    public TutoriaResponsive toDTO(Tutoria entity, Horario horario) {
-        TutoriaResponsive dto = new TutoriaResponsive();
-        dto.setId(entity.getIdTutoria());
-        dto.setFecha(entity.getFecha());
-        dto.setNombreTutor(horario.getTutor().getNombre() +
-                " " + horario.getTutor().getApellidoP() +
-                " " + horario.getTutor().getApellidoM());
-        dto.setHoraInicio(horario.getHoraInicio());
-        dto.setHoraFin(horario.getHoraFin());
-        dto.setMateria(entity.getMateria().getMateria());
-        dto.setAula(entity.getAula());
-        dto.setEdificio(entity.getEdificio());
-        dto.setEstado(entity.getEstado());
-
-        List<TemaResponsive> temasDTO = new ArrayList<>();
-        if (entity.getTemas() != null) {
-            for (Tema t : entity.getTemas()) {
-                temasDTO.add(temaMapping.toDTO(t));
-            }
-        }
-        dto.setTemas(temasDTO);
-
-        return dto;
+    public TemaResponsive toDTO(Tema tema) {
+        return new TemaResponsive(tema.getIdTema(), tema.getTema());
     }
 
-    public Tutoria update(ActualizarTutoriaRequest request, Materia materia, Horario horario, List<Asistencia> asistencias) {
-        Tutoria entity = new Tutoria();
-        entity.setAula(request.getAula());
-        entity.setMateria(materia);
-        entity.setHorario(horario);
-        entity.setEdificio(request.getEdificio());
-        entity.setAsistencias(asistencias);
-        entity.setFecha(request.getFecha());
-        entity.setEstado(EstadosTutoria.PROGRAMADA);
-        return entity;
+    public HorarioResponsive toDTO(Horario horario, boolean conTemas) {
+        List<TemaResponsive> temas = conTemas
+                ? horario.getTemas().stream().map(this::toDTO).toList()
+                : null;
+        return new HorarioResponsive(horario.getIdHorario(), horario.getDia(),
+                horario.getHoraInicio(), horario.getHoraFin(), horario.getEstado(), temas);
+    }
+
+    public CupoResponsive cupo(long ocupados) {
+        return new CupoResponsive(ocupados, Reglas.CUPO_MAXIMO, Math.max(0, Reglas.CUPO_MAXIMO - ocupados));
+    }
+
+    /** Resumen con los horarios ACTIVO (con o sin temas). */
+    public TutoriaResumenResponsive toResumen(Tutoria tutoria, long ocupados, boolean conTemas) {
+        return new TutoriaResumenResponsive(
+                tutoria.getIdTutoria(),
+                toDTO(tutoria.getMateria()),
+                usuarioMapping.toResumen(tutoria.getTutor()),
+                tutoria.getEdificio(),
+                tutoria.getAula(),
+                tutoria.getEstado(),
+                AgendaService.activos(tutoria).stream().map(h -> toDTO(h, conTemas)).toList(),
+                cupo(ocupados));
+    }
+
+    public ChoqueResponsive toDTO(AgendaService.Choque choque) {
+        Horario existente = choque.existente();
+        return new ChoqueResponsive(
+                choque.candidato().getDia(),
+                choque.candidato().getHoraInicio(),
+                choque.candidato().getHoraFin(),
+                new ChoqueConResponsive(
+                        existente.getTutoria().getIdTutoria(),
+                        existente.getTutoria().getMateria().getMateria(),
+                        existente.getHoraInicio(),
+                        existente.getHoraFin()));
+    }
+
+    /** Próxima sesión con los campos de la vista de detalle. */
+    public ProximaSesionResponsive proxima(AgendaService.Ocurrencia ocurrencia) {
+        Horario h = ocurrencia.horario();
+        return new ProximaSesionResponsive(null, null, h.getIdHorario(), ocurrencia.fecha(), h.getDia(),
+                h.getHoraInicio(), h.getHoraFin(), null, null, null,
+                h.getHoraInicio().minusHours(Reglas.HORAS_RECORDATORIO), null);
     }
 }

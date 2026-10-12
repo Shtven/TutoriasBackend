@@ -1,74 +1,76 @@
 package com.codespace.tutorias.Services;
 
-import com.codespace.tutorias.DTO.Mapping.TemaMapping;
-import com.codespace.tutorias.DTO.Request.TemaRequest;
+import com.codespace.tutorias.DTO.Mapping.TutoriaMapping;
 import com.codespace.tutorias.DTO.Responsive.TemaResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
+import com.codespace.tutorias.Helpers.EstadosHorario;
 import com.codespace.tutorias.Helpers.EstadosTutoria;
+import com.codespace.tutorias.Helpers.Reglas;
+import com.codespace.tutorias.Helpers.Roles;
+import com.codespace.tutorias.Models.Horario;
 import com.codespace.tutorias.Models.Tema;
-import com.codespace.tutorias.Models.Tutoria;
+import com.codespace.tutorias.Repositories.HorarioRepository;
 import com.codespace.tutorias.Repositories.TemaRepository;
-import com.codespace.tutorias.Repositories.TutoriaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
+/** Temas por horario; editables aunque haya inscritos (RN-15). */
 @Service
 public class TemaService {
 
     @Autowired
+    private HorarioRepository horarioRepository;
+
+    @Autowired
     private TemaRepository temaRepository;
+
     @Autowired
-    private TutoriaRepository tutoriaRepository;
+    private TutoriaService tutoriaService;
+
     @Autowired
-    private TemaMapping temaMapping;
+    private TutoriaMapping mapping;
 
-    public void crearTema(TemaRequest request, Integer matricula) {
+    @Transactional
+    public TemaResponsive agregar(int idHorario, String matricula, String texto) {
+        Horario horario = horarioRepository.findById(idHorario)
+                .orElseThrow(() -> new BusinessException("Horario no encontrado."));
+        validarEditable(horario, matricula);
 
-        if (request.getTema() == null || request.getTema().trim().isEmpty()) {
-            throw new BusinessException("El tema no puede estar vacío.");
+        String tema = texto.trim();
+        if (tema.isEmpty()) {
+            throw new BusinessException("El tema es obligatorio.");
+        }
+        if (tema.length() > Reglas.MAX_CARACTERES_TEMA) {
+            throw new BusinessException("El tema no puede exceder " + Reglas.MAX_CARACTERES_TEMA + " caracteres.");
+        }
+        if (temaRepository.countByHorario_IdHorario(idHorario) >= Reglas.MAX_TEMAS_POR_HORARIO) {
+            throw new BusinessException("Máximo " + Reglas.MAX_TEMAS_POR_HORARIO + " temas por horario.");
+        }
+        if (temaRepository.existsByHorario_IdHorarioAndTemaIgnoreCase(idHorario, tema)) {
+            throw new BusinessException("El tema ya existe en este horario.");
         }
 
-        Tutoria tutoria = tutoriaRepository.findById(request.getIdTutoria())
-                .orElseThrow(() -> new BusinessException("La tutoría no existe"));
-
-        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
-            throw new BusinessException("Solo puedes agregar temas a tutorías programadas.");
-        }
-
-        if (!tutoria.getHorario().getTutor().getMatricula().equals(matricula)) {
-            throw new BusinessException("Solo el tutor dueño de la sesión puede agregar temas.");
-        }
-
-        temaRepository.save(temaMapping.toEntity(request.getTema().trim(), tutoria));
+        Tema nuevo = new Tema(tema, horario);
+        horario.getTemas().add(nuevo);
+        temaRepository.save(nuevo);
+        return mapping.toDTO(nuevo);
     }
 
-    public List<TemaResponsive> listarPorTutoria(int idTutoria) {
-
-        if (!tutoriaRepository.existsById(idTutoria)) {
-            throw new BusinessException("La tutoría no existe");
-        }
-
-        return temaRepository.findByTutoriaIdTutoria(idTutoria)
-                .stream().map(temaMapping::toDTO).toList();
-    }
-
-    public void eliminarTema(int idTema, Integer matricula) {
-
+    @Transactional
+    public void eliminar(int idTema, String matricula) {
         Tema tema = temaRepository.findById(idTema)
-                .orElseThrow(() -> new BusinessException("El tema no existe"));
+                .orElseThrow(() -> new BusinessException("Tema no encontrado."));
+        Horario horario = tema.getHorario();
+        validarEditable(horario, matricula);
+        horario.getTemas().remove(tema);
+    }
 
-        Tutoria tutoria = tema.getTutoria();
-
-        if (!EstadosTutoria.PROGRAMADA.equals(tutoria.getEstado())) {
-            throw new BusinessException("Solo puedes eliminar temas de tutorías programadas.");
+    private void validarEditable(Horario horario, String matricula) {
+        tutoriaService.verificarDueno(horario.getTutoria(), matricula, Roles.TUTOR);
+        if (!EstadosTutoria.ACTIVA.equals(horario.getTutoria().getEstado())
+                || !EstadosHorario.ACTIVO.equals(horario.getEstado())) {
+            throw new BusinessException("El horario no está activo.");
         }
-
-        if (!tutoria.getHorario().getTutor().getMatricula().equals(matricula)) {
-            throw new BusinessException("Solo el tutor dueño de la sesión puede eliminar temas.");
-        }
-
-        temaRepository.delete(tema);
     }
 }
