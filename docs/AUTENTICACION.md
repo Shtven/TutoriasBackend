@@ -91,6 +91,15 @@ La matrícula **no** se compara con el correo; así se decidió por la limitaci�
 
 ### Microsoft Entra ID
 
+**App registrada:** "Sistema de tutorias", en el tenant de la UV y single-tenant ("Solo mi organización").
+
+| Dato | Valor |
+|---|---|
+| Id. de aplicación (cliente) | `8b9904dc-704e-4d58-a605-891edeef4df3` |
+| Id. de directorio (inquilino) | `3c907651-d8c6-4ca6-a8a4-6a242430e653` |
+
+Ninguno de los dos es secreto. **No se crean secretos ni certificados**: una SPA es un cliente público.
+
 1. **App registration** en el portal de Azure → plataforma **SPA**, con redirect URI del frontend (`http://localhost:5173`, dominio de producción).
 2. Tipo de cuenta:
    - **Ideal:** registrar la app **dentro del tenant de la UV** (single-tenant). Normalmente lo hace TI de la UV.
