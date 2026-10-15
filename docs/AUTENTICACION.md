@@ -130,6 +130,15 @@ Después de validar la contraseña, el backend emite su propio JWT (HS256):
 - `/auth/**` ignora el header `Authorization`: un token vencido no bloquea el login.
 - Con un token inválido o vencido, la API responde `401`; con un rol sin permiso, `403`. Ante un 401 el front cierra la sesión (salvo en `/auth/signin`).
 
+### Sesión en cookie `HttpOnly` (pendiente, requiere dominio común)
+
+Hoy el front guarda el JWT en `localStorage`, y un XSS podría robarlo. Lo ideal es que el backend lo entregue en una cookie `HttpOnly; Secure; SameSite=Lax` (con protección CSRF), pero **con el despliegue actual no funciona**:
+
+- `onrender.com` está en la [Public Suffix List](https://publicsuffix.org/), así que `sistemadetutoriasfront.onrender.com` y `tutoriasbe.onrender.com` son **sitios distintos** para el navegador.
+- Una cookie del backend sería de terceros (`SameSite=None`): Safari la bloquea y Chrome la restringe, y la sesión fallaría en parte de los navegadores.
+
+Requisito para retomarlo: servir front y API bajo un mismo sitio, por ejemplo `tutorias.uv.mx` + `api.tutorias.uv.mx` (dominio propio en Render), o un proxy `/api` en el mismo origen del front. Con eso: cookie `HttpOnly; Secure; SameSite=Lax`, `JWTFilter` leyendo la cookie además del header, CSRF con *double-submit* (cookie legible + header `X-CSRF-Token`) en los métodos que cambian datos, y `POST /auth/signout` que borre la cookie. Mientras tanto, la defensa es la CSP del front y no insertar HTML sin escapar.
+
 ## 8. Configuración
 
 | Variable / propiedad | Uso |
