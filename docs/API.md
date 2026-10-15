@@ -106,6 +106,21 @@ Representa una ocurrencia de un horario en una fecha. Puede existir en BD o ser 
 | `terminada` | `true` si ya pasó `horaFin`. Se usa para el aviso "La sesión terminó. Cierra la lista". |
 | `acciones` | Qué botones habilitar en la UI, según RN-7 a RN-9. |
 
+### Paginación
+
+`GET /materias` y `GET /admin/tutorias` aceptan `page` y `size`, ambos opcionales:
+
+| Param | Regla | Por defecto |
+|---|---|---|
+| `page` | Entero ≥ 0 (la primera página es `0`) | `0` si llega `size` |
+| `size` | Entero de 1 a 100 | `20` si llega `page` |
+
+- **Sin ninguno de los dos**, la respuesta trae la lista completa, como antes.
+- `data` sigue siendo una lista: solo se recorta. Una página fuera de rango devuelve `[]`.
+- Los filtros (`q`, `estado`…) se aplican antes de paginar, y el orden no cambia.
+- Cabeceras: `X-Total-Count` (elementos que cumplen el filtro, siempre), y `X-Page` y `X-Page-Size` (solo al paginar). CORS las expone para que el front pueda leerlas.
+- Fuera de rango: `400` `"size debe estar entre 1 y 100."` o `"page debe ser 0 o mayor."`.
+
 ---
 
 ## 1. Autenticación — `/auth` (público)
@@ -259,6 +274,7 @@ Catálogo ordenado por nombre. El tutor lo usa en el select de "Crear tutoría";
 | Param | Tipo | Descripción |
 |---|---|---|
 | `q` | string | Opcional. Busca en el nombre (sin distinguir mayúsculas ni acentos) o en el NRC (coincidencia parcial). |
+| `page`, `size` | entero | Opcionales. Ver [Paginación](#paginación). |
 
 **Response 200**
 ```json
@@ -1081,6 +1097,7 @@ Tabla de la pantalla 15.
 | `q` | Texto (nombre de EE, NRC o nombre del tutor) | — |
 | `matriculaTutor` | Matrícula | — |
 | `estado` | `ACTIVA` · `INACTIVA` · `TODAS` | `ACTIVA` |
+| `page`, `size` | Ver [Paginación](#paginación) | Sin paginar |
 
 **Response 200** → lista de `TutoriaResumen` más `asistenciaPct` (RN-14, `null` si no hay marcas). Orden por nombre de la EE.
 
