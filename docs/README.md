@@ -25,7 +25,7 @@ Documentación del prototipo de pruebas. Está alineada con:
    2. `db/supabase/002_datos_prueba.sql` (opcional): las 54 EE reales de Ingeniería de Software (plan 2023) y datos de los mockups.
    3. `db/supabase/003_materias_plan_2019.sql` (opcional): catálogo de EE del plan 2019.
 
-   Si la BD ya existía con el esquema anterior (sin `usuario.pwd_hash`), no la recrees: aplica `db/supabase/004_contrasenas.sql`, que no borra datos, **antes** de desplegar el backend ([AUTENTICACION.md § 9](AUTENTICACION.md#9-despliegue-del-cambio)).
+   Si la BD ya existía con el esquema anterior (sin `usuario.password_hash`), no la recrees: aplica `db/supabase/004_contrasenas.sql`, que no borra datos, **antes** de desplegar el backend ([AUTENTICACION.md § 9](AUTENTICACION.md#9-despliegue-del-cambio)).
 2. **Variables de entorno:** copia `.env.example` a `.env` y llénalo. `DB_URL` es la cadena JDBC de Supabase.
 3. **Arrancar:** `./mvnw spring-boot:run`. Swagger UI queda en `/swagger-ui.html`. `/v3/api-docs` describe el `data` de cada respuesta (`ApiResponse<X>`), así que el front puede generar sus tipos a partir de él; `OpenApiIntegracionTest` falla si un endpoint nuevo vuelve a `ResponseEntity<?>`.
 4. **Entrar:** con los datos de prueba cargados, `POST /auth/signin` con la matrícula de un usuario y la contraseña de prueba que indica el encabezado de `002_datos_prueba.sql`. Opcional en local: con `AUTH_DEV_HABILITADO=true`, `POST /auth/dev` entra solo con el correo (ver [AUTENTICACION.md § 10](AUTENTICACION.md#10-login-de-desarrollo)). **Nunca lo actives en un despliegue público.**

@@ -1,6 +1,7 @@
 package com.codespace.tutorias.DTO.Request;
 
 import com.codespace.tutorias.Helpers.MatriculaHelper;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -21,6 +22,7 @@ public record SignupRequest(
         @Email(message = "El correo no es válido.")
         @Size(max = 255, message = "El correo no puede exceder 255 caracteres.") String correo,
 
+        @JsonAlias("password")
         @NotBlank(message = "La contraseña es obligatoria.")
         @Size(min = 8, max = 72, message = "La contraseña debe tener entre 8 y 72 caracteres.") String pwd,
 

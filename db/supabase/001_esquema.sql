@@ -4,7 +4,7 @@
 --
 -- Base: TutorConnect.sql (dbdiagram) + cambios recomendados en
 -- docs/MODELO_DE_DATOS.md:
---   1. usuario.pwd_hash (login con contraseña, proveedor = 'LOCAL');
+--   1. usuario.password_hash (login con contraseña, proveedor = 'LOCAL');
 --      proveedor / id_externo quedan de las cuentas de Microsoft/Google
 --   2. inscripcion ligada a la tutoria (id_tutoria) en lugar del horario;
 --      recordatorio gana id_horario
@@ -86,16 +86,18 @@ CREATE TABLE usuario (
     id_rol      INT          NOT NULL,
     proveedor   VARCHAR(20),                        -- LOCAL (contraseña); MICROSOFT | GOOGLE (cuentas anteriores); NULL = pre-registro
     id_externo  VARCHAR(255),                       -- claim 'sub' del proveedor (solo MICROSOFT | GOOGLE)
-    pwd_hash    VARCHAR(100),                       -- BCrypt (solo LOCAL)
+    password_hash VARCHAR(100),                       -- BCrypt (solo LOCAL)
     CONSTRAINT ux_usuario_correo       UNIQUE (correo),
     CONSTRAINT fk_usuario_rol          FOREIGN KEY (id_rol) REFERENCES rol (id_rol),
     CONSTRAINT ck_usuario_correo_lower CHECK (correo = lower(correo)),
     CONSTRAINT ck_usuario_proveedor    CHECK (proveedor IN ('LOCAL', 'MICROSOFT', 'GOOGLE')),
     CONSTRAINT ck_usuario_credencial   CHECK (
-        (proveedor IS NULL     AND id_externo IS NULL     AND pwd_hash IS NULL)         -- pre-registro
-     OR (proveedor = 'LOCAL'   AND id_externo IS NULL     AND pwd_hash IS NOT NULL)     -- contraseña
-     OR (proveedor IN ('MICROSOFT', 'GOOGLE') AND id_externo IS NOT NULL AND pwd_hash IS NULL)
-    )
+        (proveedor IS NULL     AND id_externo IS NULL     AND password_hash IS NULL)         -- pre-registro
+     OR (proveedor = 'LOCAL'   AND id_externo IS NULL     AND password_hash IS NOT NULL)     -- contraseña
+     OR (proveedor IN ('MICROSOFT', 'GOOGLE') AND id_externo IS NOT NULL AND password_hash IS NULL)
+    ),
+    -- Solo hashes BCrypt: evita guardar una contraseña en texto plano al editar a mano.
+    CONSTRAINT ck_usuario_password_bcrypt CHECK (password_hash ~ '^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$')
 );
 
 CREATE UNIQUE INDEX ux_usuario_proveedor_id ON usuario (proveedor, id_externo);

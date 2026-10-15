@@ -88,7 +88,7 @@ public abstract class PruebaIntegracion {
 
     /** Usuario que ya creó su contraseña (proveedor LOCAL). */
     protected String usuarioConPwd(String matricula, String correo, String rol, String pwd) {
-        jdbc.update("INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol, proveedor, pwd_hash) " +
+        jdbc.update("INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol, proveedor, password_hash) " +
                         "VALUES (?, 'Nombre', 'Apellidos', ?, (SELECT id_rol FROM rol WHERE rol = ?), 'LOCAL', ?)",
                 matricula, correo, rol, passwordEncoder.encode(pwd));
         return jwtUtils.generarToken(matricula, rol);

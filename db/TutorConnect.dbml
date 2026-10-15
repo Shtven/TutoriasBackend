@@ -14,7 +14,7 @@ Table usuario {
   id_rol int [not null, ref: > rol.id_rol]
   proveedor varchar(20) [note: 'LOCAL (contrasena) | MICROSOFT | GOOGLE (login anterior); NULL = pre-registro']
   id_externo varchar(255) [note: 'Claim sub del proveedor (solo MICROSOFT | GOOGLE)']
-  pwd_hash varchar(100) [note: 'BCrypt (solo LOCAL)']
+  password_hash varchar(100) [note: 'BCrypt (solo LOCAL)']
 
   indexes {
     (proveedor, id_externo) [unique]

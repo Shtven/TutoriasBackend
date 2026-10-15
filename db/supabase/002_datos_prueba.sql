@@ -47,10 +47,10 @@ END $$;
 -- ---------------------------------------------------------------------
 -- Funciones auxiliares (solo viven en esta sesión)
 -- ---------------------------------------------------------------------
--- pwd_hash = BCrypt de "Tutorias2026" (el mismo para todos los usuarios mock).
+-- password_hash = BCrypt de "Tutorias2026" (el mismo para todos los usuarios mock).
 CREATE FUNCTION pg_temp.usuario(p_matricula TEXT, p_nombre TEXT, p_apellidos TEXT, p_correo TEXT, p_rol TEXT)
 RETURNS VOID LANGUAGE sql AS $f$
-    INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol, proveedor, pwd_hash)
+    INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol, proveedor, password_hash)
     VALUES (p_matricula, p_nombre, p_apellidos, lower(p_correo), (SELECT id_rol FROM rol WHERE rol = p_rol),
             'LOCAL', '$2a$10$HRC2/.1v2swcWwCYeCwk0.IzGqhpn70gZgpf38yO9US1ugr1oFJ1y');
 $f$;

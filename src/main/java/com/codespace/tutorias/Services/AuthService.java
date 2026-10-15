@@ -18,11 +18,14 @@ import com.codespace.tutorias.Repositories.UsuarioRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -56,6 +59,10 @@ public class AuthService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    /** Dominios de correo aceptados en el signup; vacío = cualquiera. */
+    @Value("${auth.local.dominios:}")
+    private String[] dominios;
+
     /** Se compara contra él cuando no hay cuenta, para que tarde lo mismo que un fallo real. */
     private volatile String hashSenuelo;
 
@@ -79,7 +86,7 @@ public class AuthService {
         limite.verificar(cuenta, ip);
 
         Optional<Usuario> conPwd = usuario.filter(u -> !u.esReclamable());
-        if (conPwd.isEmpty() || !coincide(request.pwd(), conPwd.get().getPwdHash())) {
+        if (conPwd.isEmpty() || !coincide(request.pwd(), conPwd.get().getPasswordHash())) {
             if (conPwd.isEmpty()) coincide(request.pwd(), senuelo());
             limite.registrarFallo(cuenta, ip);
             throw new CredencialesInvalidasException();
@@ -102,6 +109,7 @@ public class AuthService {
         if (request.pwd().getBytes(StandardCharsets.UTF_8).length > MAX_BYTES_PWD) {
             throw new ValidacionException("pwd", "La contraseña es demasiado larga.");
         }
+        validarDominio(correo);
 
         Optional<Usuario> existente = usuarioRepository.bloquear(matricula);
         Usuario usuario = existente.isPresent()
@@ -112,7 +120,7 @@ public class AuthService {
         usuario.setApellidos(request.apellidos().trim());
         usuario.setProveedor(Proveedores.LOCAL);
         usuario.setIdExterno(null);
-        usuario.setPwdHash(passwordEncoder.encode(request.pwd()));
+        usuario.setPasswordHash(passwordEncoder.encode(request.pwd()));
 
         if (existente.isEmpty()) {
             // persist y no save(): con id asignado, save() haría merge y podría
@@ -173,6 +181,17 @@ public class AuthService {
         }
         // Un ADMIN no se reclama por signup (su contraseña se asigna en la BD).
         throw new ValidacionException("matricula", "La matrícula ya está registrada.");
+    }
+
+    private void validarDominio(String correo) {
+        List<String> permitidos = Arrays.stream(dominios)
+                .map(d -> d.trim().toLowerCase())
+                .filter(d -> !d.isEmpty())
+                .toList();
+        String dominio = correo.substring(correo.lastIndexOf('@') + 1);
+        if (!permitidos.isEmpty() && !permitidos.contains(dominio)) {
+            throw new ValidacionException("correo", "El correo debe ser @" + String.join(" o @", permitidos) + ".");
+        }
     }
 
     private boolean coincide(String pwd, String hash) {

@@ -27,7 +27,7 @@ public class Usuario {
     private String idExterno;
 
     /** BCrypt. Nunca sale en una respuesta ni en un log. */
-    private String pwdHash;
+    private String passwordHash;
 
     public Usuario() {}
 
@@ -37,7 +37,7 @@ public class Usuario {
 
     /** Sin contraseña todavía: pre-registro o cuenta de un proveedor externo. */
     public boolean esReclamable() {
-        return pwdHash == null;
+        return passwordHash == null;
     }
 
     public String getMatricula() {
@@ -96,11 +96,11 @@ public class Usuario {
         this.idExterno = idExterno;
     }
 
-    public String getPwdHash() {
-        return pwdHash;
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
-    public void setPwdHash(String pwdHash) {
-        this.pwdHash = pwdHash;
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

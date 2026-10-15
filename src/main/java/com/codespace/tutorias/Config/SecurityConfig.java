@@ -41,7 +41,7 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager();
     }
 
-    /** Hash de usuario.pwd_hash. Acepta también los $2a$ que genera pgcrypto. */
+    /** Hash de usuario.password_hash. Acepta también los $2a$ que genera pgcrypto. */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

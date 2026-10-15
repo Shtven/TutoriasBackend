@@ -48,10 +48,10 @@ class AuthIntegracionTest extends PruebaIntegracion {
                 .andExpect(jsonPath("$.data.usuario.correo").value("zs24011236@estudiantes.uv.mx"))
                 .andExpect(jsonPath("$.data.usuario.rol").value("TUTORADO"))
                 .andExpect(jsonPath("$.data.usuario.pwd").doesNotExist())
-                .andExpect(jsonPath("$.data.usuario.pwdHash").doesNotExist())
+                .andExpect(jsonPath("$.data.usuario.passwordHash").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 
-        String hash = jdbc.queryForObject("SELECT pwd_hash FROM usuario WHERE matricula = 'S24011236'", String.class);
+        String hash = jdbc.queryForObject("SELECT password_hash FROM usuario WHERE matricula = 'S24011236'", String.class);
         assertThat(hash).startsWith("$2").doesNotContain("secreta12");
         assertThat(respuesta).doesNotContain("secreta12").doesNotContain(hash);
 
@@ -92,6 +92,20 @@ class AuthIntegracionTest extends PruebaIntegracion {
                 .andExpect(jsonPath("$.data.pwd").value("La contraseña es demasiado larga."));
 
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM usuario", Integer.class)).isZero();
+    }
+
+    @Test
+    void signupSoloAceptaLosDominiosConfiguradosYElAliasPassword() throws Exception {
+        postJson("/auth/signup", signupJson("S24011236", "sofia@hotmail.com", "secreta12", "TUTORADO"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.correo").value("El correo debe ser @estudiantes.uv.mx o @gmail.com."));
+
+        // "password" en lugar de "pwd" (nombre de la versión del 12 de octubre).
+        postJson("/auth/signup", signupJson("S24011236", "zs24011236@estudiantes.uv.mx", "secreta12", "TUTORADO")
+                        .replace("\"pwd\"", "\"password\""))
+                .andExpect(status().isOk());
+        postJson("/auth/signin", "{\"matricula\":\"S24011236\",\"password\":\"secreta12\"}")
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -293,7 +307,7 @@ class AuthIntegracionTest extends PruebaIntegracion {
         usuario("25480", "Adriana", "Salas Ortega", "ADMIN");
         // El mismo UPDATE que documenta 004_contrasenas.sql.
         jdbc.update("UPDATE usuario SET proveedor = 'LOCAL', id_externo = NULL, " +
-                "pwd_hash = crypt('admin-secreta', gen_salt('bf', 10)) WHERE matricula = '25480'");
+                "password_hash = crypt('admin-secreta', gen_salt('bf', 10)) WHERE matricula = '25480'");
 
         signin("matricula", "25480", "admin-secreta")
                 .andExpect(status().isOk())

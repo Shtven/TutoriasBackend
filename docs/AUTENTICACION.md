@@ -17,7 +17,7 @@ sequenceDiagram
         U->>F: Nombre, apellidos, matrícula, correo, contraseña, rol
         F->>B: POST /auth/signup
         B->>DB: Valida duplicados y la lista de tutores autorizados
-        B->>DB: INSERT usuario (pwd_hash = BCrypt)
+        B->>DB: INSERT usuario (password_hash = BCrypt)
         B-->>F: { token, usuario }
     else Cuenta existente (pantalla de login)
         U->>F: Matrícula o correo + contraseña
@@ -33,7 +33,7 @@ Detalle de bodies, respuestas y mensajes de error: [API.md § 1](API.md#1-autent
 
 ## 2. Contraseñas
 
-- Se guardan en `usuario.pwd_hash` con **BCrypt** (`BCryptPasswordEncoder` de Spring Security, costo 10). Nunca en texto plano, ni en logs, ni en una respuesta: `UsuarioResponsive` no expone el hash.
+- Se guardan en `usuario.password_hash` con **BCrypt** (`BCryptPasswordEncoder` de Spring Security, costo 10). Nunca en texto plano, ni en logs, ni en una respuesta: `UsuarioResponsive` no expone el hash.
 - Entre **8 y 72 caracteres**. BCrypt solo usa los primeros 72 bytes, así que una contraseña con más bytes (p. ej. muchos caracteres acentuados o emojis) se rechaza en el signup en lugar de truncarse en silencio.
 - El signin responde **el mismo mensaje y el mismo código** (`401 Usuario o contraseña incorrectos.`) si la cuenta no existe, si la contraseña está mal o si la cuenta aún no tiene contraseña. Cuando la cuenta no existe, igual se calcula un BCrypt contra un hash señuelo, para que el tiempo de respuesta no delate qué matrículas o correos están registrados.
 - No hay recuperación de contraseña todavía. Mientras tanto, un admin puede asignar una nueva desde la BD ([§ 5](#5-administradores)).
@@ -55,7 +55,7 @@ Los valores se cambian en `application.properties` (`auth.intentos.*`). El conta
 
 La restricción `ck_usuario_credencial` (en `001_esquema.sql` y `004_contrasenas.sql`) solo admite tres combinaciones:
 
-| Estado | `proveedor` | `id_externo` | `pwd_hash` | ¿Puede iniciar sesión? |
+| Estado | `proveedor` | `id_externo` | `password_hash` | ¿Puede iniciar sesión? |
 |---|---|---|---|---|
 | Pre-registro | `NULL` | `NULL` | `NULL` | No. El signup la reclama. |
 | Con contraseña | `LOCAL` | `NULL` | BCrypt | Sí |
@@ -90,7 +90,7 @@ VALUES ('25480', 'Adriana', 'Salas Ortega', 'asalas@uv.mx',
 -- Contraseña (también sirve para restablecer la de cualquier usuario)
 UPDATE usuario
 SET proveedor = 'LOCAL', id_externo = NULL,
-    pwd_hash = extensions.crypt('<contraseña>', extensions.gen_salt('bf', 10))
+    password_hash = extensions.crypt('<contraseña>', extensions.gen_salt('bf', 10))
 WHERE matricula = '25480';
 
 -- Promover a alguien que ya tiene cuenta
@@ -137,13 +137,14 @@ Después de validar la contraseña, el backend emite su propio JWT (HS256):
 | `API_KEY` | Firma del JWT (mínimo 32 caracteres). |
 | `API_JWT_EXPIRATION` | Vigencia del JWT en ms. |
 | `auth.intentos.max-por-cuenta` / `max-por-ip` / `ventana-minutos` | Límite de intentos (5 / 30 / 15). |
+| `auth.local.dominios` | Dominios de correo aceptados en el signup (`estudiantes.uv.mx,gmail.com`). Vacío = cualquiera. |
 | `AUTH_DEV_HABILITADO` | `true` solo en pruebas: habilita `POST /auth/dev` (§ 10). Por defecto `false`. |
 
 ## 9. Despliegue del cambio
 
-`ddl-auto=validate` impide arrancar si falta la columna `pwd_hash`, así que el orden importa:
+`ddl-auto=validate` impide arrancar si falta la columna `password_hash`, así que el orden importa:
 
-1. Aplicar `db/supabase/004_contrasenas.sql` en Supabase (no borra datos; el backend anterior sigue funcionando con el esquema nuevo).
+1. Aplicar `db/supabase/004_contrasenas.sql` en Supabase (no borra datos; el backend anterior sigue funcionando con el esquema nuevo). Sirve también si ya se había aplicado `004_registro_con_contrasena.sql` (versión del 12 de octubre): las cuentas con contraseña pasan a `LOCAL`.
 2. Desplegar el backend.
 3. Asignar contraseña a los admins (§ 5) y pre-registrar a los tutores que todavía no tienen cuenta (§ 4).
 

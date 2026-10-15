@@ -125,6 +125,7 @@ Inicia sesión con matrícula **o** correo y contraseña. Entrega el JWT de sesi
 ```
 
 - Si llegan los dos, se usa `correo`.
+- `password` se acepta como alias de `pwd` (aquí y en el signup).
 - La matrícula acepta el prefijo `z` y minúsculas (`zs23014587` → `S23014587`); los `ADMIN` entran con su matrícula tal cual (`25480`) o con su correo. El correo no distingue mayúsculas.
 
 **Response 200**
@@ -184,7 +185,7 @@ Crea la cuenta y entra directo (misma respuesta que el signin, con `message: "Cu
 | `nombre` | Obligatorio, máximo 50 | `El nombre es obligatorio.` · `El nombre no puede exceder 50 caracteres.` |
 | `apellidos` | Obligatorio, máximo 200 | `Los apellidos son obligatorios.` · `Los apellidos no pueden exceder 200 caracteres.` |
 | `matricula` | `S` + 8 dígitos (acepta `z` inicial y minúsculas; se guarda `S24011236`). Única. | `Matrícula inválida: …` · `La matrícula ya está registrada.` |
-| `correo` | Email válido, máximo 255; se guarda en minúsculas. Único. | `El correo no es válido.` · `El correo ya está registrado.` |
+| `correo` | Email válido, máximo 255; se guarda en minúsculas. Único. Dominio en `auth.local.dominios` (hoy `estudiantes.uv.mx` y `gmail.com`). | `El correo no es válido.` · `El correo ya está registrado.` · `El correo debe ser @estudiantes.uv.mx o @gmail.com.` |
 | `pwd` | 8 a 72 caracteres y máximo 72 bytes (límite de BCrypt) | `La contraseña debe tener entre 8 y 72 caracteres.` · `La contraseña es demasiado larga.` |
 | `rol` | `TUTORADO` o `TUTOR` (sin distinguir mayúsculas). `ADMIN` nunca. | `El rol debe ser TUTORADO o TUTOR.` |
 
