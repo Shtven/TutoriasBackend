@@ -1,5 +1,6 @@
 package com.codespace.tutorias.Config;
 
+import com.codespace.tutorias.Helpers.Paginado;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +41,8 @@ public class CorsConfig {
         ));
 
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Sin esto el navegador no deja que el front lea la paginación.
+        config.setExposedHeaders(List.of(Paginado.TOTAL, Paginado.PAGINA, Paginado.TAMANO));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

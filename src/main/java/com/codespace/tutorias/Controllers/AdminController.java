@@ -8,6 +8,7 @@ import com.codespace.tutorias.DTO.Responsive.CierrePeriodoResponsive;
 import com.codespace.tutorias.DTO.Responsive.UsuarioResponsive;
 import com.codespace.tutorias.DTO.Responsive.UsuarioResumenResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
+import com.codespace.tutorias.Helpers.Pagina;
 import com.codespace.tutorias.Services.AdminService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,11 +35,15 @@ public class AdminController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Resumen", adminService.resumen(desde)));
     }
 
+    /** Paginación opcional con page y size (docs/API.md § 0, Paginación). */
     @GetMapping("/tutorias")
     public ResponseEntity<ApiResponse<List<AdminTutoriaResponsive>>> tutorias(@RequestParam(required = false) String q,
                                                                               @RequestParam(required = false) String matriculaTutor,
-                                                                              @RequestParam(required = false) String estado) {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Tutorías", adminService.tutorias(q, matriculaTutor, estado)));
+                                                                              @RequestParam(required = false) String estado,
+                                                                              @RequestParam(required = false) Integer page,
+                                                                              @RequestParam(required = false) Integer size) {
+        Pagina pagina = Pagina.de(page, size);
+        return adminService.tutorias(q, matriculaTutor, estado, pagina).respuesta("Tutorías", pagina);
     }
 
     @GetMapping("/tutores")

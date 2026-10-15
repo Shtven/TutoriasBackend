@@ -4,6 +4,8 @@ import com.codespace.tutorias.DTO.Request.MateriaRequest;
 import com.codespace.tutorias.DTO.Responsive.MateriaCatalogoResponsive;
 import com.codespace.tutorias.Exceptions.BusinessException;
 import com.codespace.tutorias.Helpers.EstadosTutoria;
+import com.codespace.tutorias.Helpers.Pagina;
+import com.codespace.tutorias.Helpers.Paginado;
 import com.codespace.tutorias.Helpers.Texto;
 import com.codespace.tutorias.Models.Materia;
 import com.codespace.tutorias.Repositories.MateriaRepository;
@@ -27,15 +29,18 @@ public class MateriaService {
     private TutoriaRepository tutoriaRepository;
 
     @Transactional(readOnly = true)
-    public List<MateriaCatalogoResponsive> listar(String q) {
+    public Paginado<MateriaCatalogoResponsive> listar(String q, Pagina pagina) {
         Map<Integer, Long> activas = new HashMap<>();
         for (Object[] fila : tutoriaRepository.contarActivasPorMateria()) {
             activas.put((Integer) fila[0], (Long) fila[1]);
         }
-        return materiaRepository.findAllByOrderByMateriaAsc().stream()
+        List<Materia> filtradas = materiaRepository.findAllByOrderByMateriaAsc().stream()
                 .filter(m -> coincide(m, q))
-                .map(m -> toDTO(m, activas.getOrDefault(m.getIdMateria(), 0L)))
                 .toList();
+        List<Materia> porcion = pagina == null ? filtradas : pagina.recortar(filtradas);
+        return new Paginado<>(porcion.stream()
+                .map(m -> toDTO(m, activas.getOrDefault(m.getIdMateria(), 0L)))
+                .toList(), filtradas.size());
     }
 
     @Transactional(readOnly = true)

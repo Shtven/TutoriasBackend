@@ -77,7 +77,7 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminTutoriaResponsive> tutorias(String q, String matriculaTutor, String estado) {
+    public Paginado<AdminTutoriaResponsive> tutorias(String q, String matriculaTutor, String estado, Pagina pagina) {
         String filtro = estado == null || estado.isBlank() ? EstadosTutoria.ACTIVA : estado.trim().toUpperCase();
         List<Tutoria> tutorias = switch (filtro) {
             case "TODAS" -> tutoriaRepository.findAll();
@@ -94,6 +94,9 @@ public class AdminService {
                         || String.valueOf(t.getMateria().getIdentificador()).contains(q.trim()))
                 .sorted(Comparator.comparing((Tutoria t) -> Texto.normalizar(t.getMateria().getMateria())))
                 .toList();
+        long encontradas = filtradas.size();
+        // Se recorta antes de contar cupos y asistencia, que es lo costoso.
+        if (pagina != null) filtradas = pagina.recortar(filtradas);
 
         List<Integer> ids = filtradas.stream().map(Tutoria::getIdTutoria).toList();
         Map<Integer, Long> ocupados = agenda.ocupados(ids);
@@ -106,11 +109,11 @@ public class AdminService {
             }
         }
 
-        return filtradas.stream()
+        return new Paginado<>(filtradas.stream()
                 .map(t -> new AdminTutoriaResponsive(
                         mapping.toResumen(t, ocupados.getOrDefault(t.getIdTutoria(), 0L), false),
                         porcentajes.get(t.getIdTutoria())))
-                .toList();
+                .toList(), encontradas);
     }
 
     @Transactional(readOnly = true)
