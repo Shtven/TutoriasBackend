@@ -1,0 +1,88 @@
+@startuml diagrama-contexto-tutorias
+' ============================================================
+'  Diagrama de Contexto - Sistema de Tutorias
+'  Notacion: UML - Diagrama de Componentes (vista de contexto)
+'  Backend: Spring Boot (REST API) + JWT + JPA
+' ============================================================
+
+title Diagrama de Contexto (UML - Diagrama de Componentes)\nSistema de Tutorias
+
+skinparam backgroundColor #FDFDFD
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam packageStyle rectangle
+
+skinparam actor {
+  BackgroundColor #E8F0FE
+  BorderColor #1A73E8
+}
+skinparam component {
+  BackgroundColor #DCEEFF
+  BorderColor #5F6368
+  FontColor #202124
+  ArrowColor #5F6368
+}
+skinparam interface {
+  BackgroundColor #FFFFFF
+  BorderColor #5F6368
+}
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #C9B458
+}
+
+' ---------------- Actores (roles humanos) ----------------
+actor "Tutorado\n(Alumno)" as Tutorado
+actor "Tutor"              as Tutor
+actor "Administrador"      as Admin
+
+' ---------------- Componentes de software ----------------
+component "Sistema de Tutorias\nBackend REST - Spring Boot" <<system>>          as Sistema  #DCEEFF
+component "Frontend Web (SPA)\nReact / Vite"                <<system>>          as Frontend #EFEFEF
+component "Base de Datos\nPostgreSQL"                       <<database>>        as DB       #E6F4EA
+component "SendGrid\nAPI de Correo"                         <<external system>> as SendGrid #FCE8E6
+
+' ---------------- Interfaces (contratos) ----------------
+interface "REST API\n(JSON / JWT)" as IRest
+interface "JDBC"                   as IJdbc
+interface "HTTP API"               as IMail
+
+' Interfaz provista (lollipop): componente -- interfaz
+Sistema -- IRest
+DB      -- IJdbc
+SendGrid -- IMail
+
+' Interfaz requerida (socket / dependencia): consumidor ..> interfaz
+Frontend ..> IRest  : <<use>>
+Sistema  ..> IJdbc  : <<use>>
+Sistema  ..> IMail  : <<use>>
+
+' ---------------- Asociaciones actor - componente ----------------
+Tutorado -- Frontend
+Tutor    -- Frontend
+Admin    -- Frontend
+
+' ---------------- Dependencias de notificacion ----------------
+SendGrid ..> Tutorado : <<notify>>
+SendGrid ..> Tutor    : <<notify>>
+
+' ---------------- Notas (sustituyen al legend suelto) ----------------
+note right of Sistema
+  Gestiona autenticacion (JWT), usuarios/roles,
+  experiencias educativas, tutorias, horarios,
+  sesiones, pase de lista, comentarios y temas.
+  Tareas programadas (cada minuto): recordatorio
+  2 h antes de cada sesion y aviso de pase de
+  lista sin cerrar.
+  Despliegue: Render
+end note
+
+note bottom of Frontend
+  Despliegue: Render
+end note
+
+note bottom of DB
+  Instancia gestionada en Supabase
+end note
+
+@enduml

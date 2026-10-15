@@ -319,7 +319,7 @@ public class SesionService {
         Integer pct = marcasTotales == 0 ? null : (int) Math.round(marcasAsistio * 100.0 / marcasTotales);
 
         HistorialTutoriaResponsive datos = new HistorialTutoriaResponsive(
-                tutoria.getIdTutoria(), tutoria.getMateria().getMateria(), tutoria.getEdificio(), tutoria.getAula(),
+                tutoria.getIdTutoria(), mapping.toDTO(tutoria.getMateria()), tutoria.getEdificio(), tutoria.getAula(),
                 AgendaService.activos(tutoria).stream().map(h -> mapping.toDTO(h, false)).toList(),
                 mapping.cupo(agenda.ocupados(idTutoria)));
 
@@ -506,7 +506,7 @@ public class SesionService {
                 sesion == null ? null : sesion.getIdSesion(),
                 horario.getIdHorario(),
                 tutoria.getIdTutoria(),
-                tutoria.getMateria().getMateria(),
+                mapping.toDTO(tutoria.getMateria()),
                 fecha,
                 horario.getDia(),
                 inicio,

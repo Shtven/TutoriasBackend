@@ -12,27 +12,19 @@ import java.security.Key;
 import java.util.Date;
 
 /**
- * JWT propios del backend (HS256). Hay dos tipos y no son intercambiables:
- * <ul>
- *   <li>SESION: se usa en Authorization para toda la API.</li>
- *   <li>REGISTRO: lleva la identidad ya verificada por el proveedor durante
- *       el primer acceso; solo lo acepta POST /auth/registro.</li>
- * </ul>
+ * JWT de sesión del backend (HS256): sub = matrícula, rol, tipo = SESION.
+ * Se usa en Authorization para toda la API.
  */
 @Component
 public class JWTUtils {
 
     public static final String TIPO_SESION = "SESION";
-    public static final String TIPO_REGISTRO = "REGISTRO";
 
     @Value("${api.key}")
     private String apiKey;
 
     @Value("${api.jwt.expiration}")
     private long expiration;
-
-    @Value("${auth.registro.expiracion-minutos:15}")
-    private long minutosRegistro;
 
     public String generarToken(String matricula, String rol) {
         return Jwts.builder()
@@ -41,20 +33,6 @@ public class JWTUtils {
                 .claim("tipo", TIPO_SESION)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(llave(), SignatureAlgorithm.HS256)
-                .compact();
-    }
-
-    public String generarTokenRegistro(IdentidadVerificada identidad) {
-        return Jwts.builder()
-                .setSubject(identidad.idExterno())
-                .claim("tipo", TIPO_REGISTRO)
-                .claim("proveedor", identidad.proveedor())
-                .claim("correo", identidad.correo())
-                .claim("nombre", identidad.nombre())
-                .claim("apellidos", identidad.apellidos())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + minutosRegistro * 60_000))
                 .signWith(llave(), SignatureAlgorithm.HS256)
                 .compact();
     }

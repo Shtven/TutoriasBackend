@@ -59,7 +59,7 @@ public class TutoriaMapping {
                 choque.candidato().getHoraFin(),
                 new ChoqueConResponsive(
                         existente.getTutoria().getIdTutoria(),
-                        existente.getTutoria().getMateria().getMateria(),
+                        toDTO(existente.getTutoria().getMateria()),
                         existente.getHoraInicio(),
                         existente.getHoraFin()));
     }

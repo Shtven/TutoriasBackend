@@ -29,7 +29,7 @@ Estos objetos se repiten en varias respuestas.
 ```json
 { "idMateria": 5, "nombre": "Estructuras de Datos", "nrc": 48215 }
 ```
-`nrc` corresponde a la columna `materia.identificador`.
+`nrc` corresponde a la columna `materia.identificador`. Todas las respuestas que incluyen la EE (`TutoriaResumen`, `Sesion`, historial, próxima sesión, choques y semana) la mandan con esta forma, nunca como texto.
 
 ### `UsuarioResumen`
 ```json
@@ -80,7 +80,7 @@ Representa una ocurrencia de un horario en una fecha. Puede existir en BD o ser 
   "idSesion": 88,
   "idHorario": 31,
   "idTutoria": 12,
-  "materia": "Estructuras de Datos",
+  "materia": { "idMateria": 5, "nombre": "Estructuras de Datos", "nrc": 48215 },
   "fecha": "2026-10-05",
   "dia": "LUNES",
   "horaInicio": "10:00",
@@ -112,23 +112,28 @@ Representa una ocurrencia de un horario en una fecha. Puede existir en BD o ser 
 
 Flujo completo y configuración en [AUTENTICACION.md](AUTENTICACION.md).
 
-### `POST /auth/microsoft`
-### `POST /auth/google`
+### `POST /auth/signin`
 
-Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT propio; si no, inicia el registro.
+Inicia sesión con matrícula **o** correo y contraseña. Entrega el JWT de sesión.
 
-**Body**
+**Body** (uno de los dos identificadores)
 ```json
-{ "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6..." }
+{ "matricula": "S23014587", "pwd": "secreta123" }
+```
+```json
+{ "correo": "zs23014587@estudiantes.uv.mx", "pwd": "secreta123" }
 ```
 
-**Response 200 — usuario registrado**
+- Si llegan los dos, se usa `correo`.
+- `password` se acepta como alias de `pwd` (aquí y en el signup).
+- La matrícula acepta el prefijo `z` y minúsculas (`zs23014587` → `S23014587`); los `ADMIN` entran con su matrícula tal cual (`25480`) o con su correo. El correo no distingue mayúsculas.
+
+**Response 200**
 ```json
 {
   "success": true,
   "message": "Login",
   "data": {
-    "registroPendiente": false,
     "token": "eyJhbGciOiJIUzI1NiJ9...",
     "usuario": {
       "matricula": "S23014587",
@@ -136,69 +141,77 @@ Verifica el ID token del proveedor. Si el usuario ya existe, entrega el JWT prop
       "apellidos": "Mendoza Cruz",
       "correo": "zs23014587@estudiantes.uv.mx",
       "rol": "TUTORADO",
-      "proveedor": "MICROSOFT"
+      "proveedor": "LOCAL"
     }
   }
 }
 ```
 
-El correo siempre se guarda y se devuelve en minúsculas.
+El JWT lleva `sub` = matrícula, `rol`, `tipo: "SESION"` y `exp` ([AUTENTICACION.md § 7](AUTENTICACION.md#7-jwt-de-sesión)).
 
-**Response 200 — primer acceso**
-```json
-{
-  "success": true,
-  "message": "Registro pendiente",
-  "data": {
-    "registroPendiente": true,
-    "tokenRegistro": "eyJhbGciOiJIUzI1NiJ9...",
-    "perfil": {
-      "nombre": "Sofía",
-      "apellidos": "Ramos Gutiérrez",
-      "correo": "zs24011236@estudiantes.uv.mx",
-      "proveedor": "MICROSOFT"
-    }
-  }
-}
-```
+**Errores**
 
-**Errores (400)**
+| Código | Mensaje | Causa |
+|---|---|---|
+| `401` | `Usuario o contraseña incorrectos.` | No existe la cuenta, la contraseña no coincide o la cuenta aún no tiene contraseña (pre-registro). Es el mismo mensaje en todos los casos. |
+| `429` | `Demasiados intentos fallidos. Intenta de nuevo en N minutos.` | 5 fallos de la misma cuenta (o 30 de la misma IP) en 15 minutos. Se bloquea aunque la contraseña sea correcta. |
+| `400` | `data.matricula`: `Escribe tu matrícula o correo.` | No llegó ningún identificador. |
+| `400` | `data.pwd`: `La contraseña es obligatoria.` | — |
 
-| Mensaje | Causa |
-|---|---|
-| `Token del proveedor inválido o expirado.` | Firma, `iss`, `aud` o `exp` no válidos. |
-| `Solo se permiten cuentas @estudiantes.uv.mx.` | Microsoft: `tid` o dominio distinto. |
-| `Solo se permiten cuentas @gmail.com.` | Google: dominio distinto o `email_verified = false`. |
-| `El acceso con Google no está configurado.` | Falta `GOOGLE_CLIENT_ID` (o `MICROSOFT_CLIENT_ID` / `MICROSOFT_TENANT_ID`). |
-| `Este correo ya está ligado a otra cuenta.` | El correo existe con otra identidad del proveedor. |
+Un `Authorization` viejo en el header no afecta a `/auth/**`.
 
 ---
 
-### `POST /auth/registro`
+### `POST /auth/signup`
 
-Completa el primer acceso (pantalla 02). Nombre, apellidos, correo y proveedor se toman del `tokenRegistro`, no del body.
+Crea la cuenta y entra directo (misma respuesta que el signin, con `message: "Cuenta creada."`).
 
 **Body**
 ```json
-{ "tokenRegistro": "eyJhbGciOiJIUzI1NiJ9...", "matricula": "S24011236", "rol": "TUTORADO" }
+{
+  "nombre": "Sofía",
+  "apellidos": "Ramos Gutiérrez",
+  "matricula": "S24011236",
+  "correo": "zs24011236@estudiantes.uv.mx",
+  "pwd": "secreta12",
+  "rol": "TUTORADO"
+}
 ```
 
-**Validaciones**
+**Validaciones** (errores en `data`, con el nombre del campo del body como clave)
 
-| Campo | Regla |
-|---|---|
-| `tokenRegistro` | Firmado por el backend y vigente (15 min). |
-| `matricula` | Se aplica `trim`, se quita el prefijo `z` si viene y la `S` se pasa a mayúscula. Debe quedar `S` + 8 dígitos (`S24011236`). Única: `"La matrícula ya está registrada con otra cuenta."` |
-| `rol` | `TUTORADO` o `TUTOR` (sin distinguir mayúsculas). Cualquier otro valor (incluido `ADMIN`) → `"Rol inválido."` |
-| — | Token de registro vencido o inválido → `"El registro expiró. Vuelve a iniciar sesión."` |
+| Campo | Regla | Mensaje |
+|---|---|---|
+| `nombre` | Obligatorio, máximo 50 | `El nombre es obligatorio.` · `El nombre no puede exceder 50 caracteres.` |
+| `apellidos` | Obligatorio, máximo 200 | `Los apellidos son obligatorios.` · `Los apellidos no pueden exceder 200 caracteres.` |
+| `matricula` | `S` + 8 dígitos (acepta `z` inicial y minúsculas; se guarda `S24011236`). Única. | `Matrícula inválida: …` · `La matrícula ya está registrada.` |
+| `correo` | Email válido, máximo 255; se guarda en minúsculas. Único. Dominio en `auth.local.dominios` (hoy `estudiantes.uv.mx` y `gmail.com`). | `El correo no es válido.` · `El correo ya está registrado.` · `El correo debe ser @estudiantes.uv.mx o @gmail.com.` |
+| `pwd` | 8 a 72 caracteres y máximo 72 bytes (límite de BCrypt) | `La contraseña debe tener entre 8 y 72 caracteres.` · `La contraseña es demasiado larga.` |
+| `rol` | `TUTORADO` o `TUTOR` (sin distinguir mayúsculas). `ADMIN` nunca. | `El rol debe ser TUTORADO o TUTOR.` |
 
-**Response 200** → igual que el login de un usuario registrado (`registroPendiente: false`, `token`, `usuario`), con `message: "Registro exitoso."`. Si el formulario se envía dos veces, la segunda llamada solo inicia sesión.
+```json
+{
+  "success": false,
+  "message": "Error de validación",
+  "data": { "matricula": "La matrícula ya está registrada." }
+}
+```
+
+**Alta de tutores (lista autorizada).** El signup con `rol: "TUTOR"` solo procede si un admin pre-registró la matrícula con [`POST /admin/tutores`](#post-admintutores--admin) y el correo coincide. Si no:
+
+| Caso | Campo | Mensaje |
+|---|---|---|
+| Matrícula sin pre-registro de tutor | `rol` | `Tu matrícula no está autorizada como tutor. Pide al administrador que te registre.` |
+| Pre-registrada, pero con otro correo | `correo` | `El correo no coincide con el registrado para esta matrícula.` |
+| Pre-registrada como tutor y se pide `TUTORADO` | `rol` | `Tu matrícula está autorizada como tutor: elige el rol TUTOR.` |
+
+El mismo mecanismo reclama las cuentas creadas con el login anterior de Microsoft/Google, que no tienen contraseña: con su matrícula y su correo, el signup les asigna contraseña y conserva su rol e historial.
 
 ---
 
 ### `POST /auth/dev` — solo pruebas
 
-Existe solo si `AUTH_DEV_HABILITADO=true`; si no, la ruta responde `404`. Inicia sesión por correo sin pasar por el proveedor (ver [AUTENTICACION.md § 8](AUTENTICACION.md#8-login-de-desarrollo)).
+Existe solo si `AUTH_DEV_HABILITADO=true`; si no, la ruta responde `404`. Inicia sesión por correo sin contraseña (ver [AUTENTICACION.md § 10](AUTENTICACION.md#10-login-de-desarrollo)).
 
 **Body**
 ```json
@@ -226,7 +239,7 @@ Datos del usuario autenticado (barra lateral).
     "apellidos": "Mendoza Cruz",
     "correo": "zs23014587@estudiantes.uv.mx",
     "rol": "TUTORADO",
-    "proveedor": "MICROSOFT"
+    "proveedor": "LOCAL"
   }
 }
 ```
@@ -346,7 +359,7 @@ Edificios con sus aulas, para los selects de la pantalla 10. El origen del catá
           "dia": "JUEVES",
           "horaInicio": "17:00",
           "horaFin": "19:00",
-          "conTutoria": { "idTutoria": 7, "materia": "Bases de Datos", "horaInicio": "16:00", "horaFin": "18:00" }
+          "conTutoria": { "idTutoria": 7, "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 }, "horaInicio": "16:00", "horaFin": "18:00" }
         }
       ]
     }
@@ -587,7 +600,7 @@ Matriz de la pantalla 14: cada tutorado contra cada sesión registrada.
   "success": true,
   "message": "Historial de asistencia",
   "data": {
-    "tutoria": { "idTutoria": 12, "materia": "Estructuras de Datos", "edificio": 2, "aula": 7,
+    "tutoria": { "idTutoria": 12, "materia": { "idMateria": 5, "nombre": "Estructuras de Datos", "nrc": 48215 }, "edificio": 2, "aula": 7,
                  "horarios": [ { "dia": "LUNES", "horaInicio": "10:00", "horaFin": "12:00" }, { "dia": "MIERCOLES", "horaInicio": "10:00", "horaFin": "12:00" } ],
                  "cupo": { "ocupados": 4, "maximo": 7, "disponibles": 3 } },
     "resumen": {
@@ -702,7 +715,7 @@ Inscribe al tutorado autenticado (pantalla 05).
   "data": {
     "proximaSesion": {
       "idTutoria": 7,
-      "materia": "Bases de Datos",
+      "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 },
       "fecha": "2026-10-06",
       "dia": "MARTES",
       "horaInicio": "16:00",
@@ -806,9 +819,9 @@ Horarios semanales de sus inscripciones activas, para el panel "Tu semana" (pant
   "success": true,
   "message": "Mi semana",
   "data": [
-    { "dia": "MARTES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": "Bases de Datos" },
-    { "dia": "JUEVES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": "Bases de Datos" },
-    { "dia": "VIERNES", "horaInicio": "08:00", "horaFin": "10:00", "idTutoria": 3, "materia": "Álgebra Lineal" }
+    { "dia": "MARTES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 } },
+    { "dia": "JUEVES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 } },
+    { "dia": "VIERNES", "horaInicio": "08:00", "horaFin": "10:00", "idTutoria": 3, "materia": { "idMateria": 1, "nombre": "Álgebra Lineal", "nrc": 47702 } }
   ]
 }
 ```
@@ -1075,7 +1088,31 @@ Tabla de la pantalla 15.
 
 Usuarios con rol `TUTOR`, para el filtro "Todos los tutores".
 
-**Response 200** → `data`: lista de `UsuarioResumen`, ordenada por nombre.
+**Response 200** → `data`: lista de `UsuarioResumen`, ordenada por nombre. Incluye a los tutores pre-registrados que aún no crean su cuenta.
+
+### `POST /admin/tutores` — `ADMIN`
+
+Agrega una matrícula a la **lista de tutores autorizados**. Solo así alguien puede darse de alta como `TUTOR` con [`POST /auth/signup`](#post-authsignup), usando esta matrícula y este correo. La fila queda sin contraseña (pre-registro) hasta que la persona crea su cuenta.
+
+**Body**
+```json
+{
+  "nombre": "Luis",
+  "apellidos": "Pérez Montiel",
+  "matricula": "S21008800",
+  "correo": "zs21008800@estudiantes.uv.mx"
+}
+```
+
+Mismas validaciones que el signup para estos cuatro campos, con errores por campo en `data` (`La matrícula ya está registrada.`, `El correo ya está registrado.`).
+
+**Response 200** → `message: "Tutor autorizado."`, `data`: el usuario (`rol: "TUTOR"`, `proveedor: null`).
+
+### `DELETE /admin/tutores/{matricula}` — `ADMIN`
+
+Quita un pre-registro que todavía no crea su cuenta (p. ej. para corregir el correo). Si la persona ya creó su contraseña, o la matrícula no es de un tutor pre-registrado: `400` `"Solo se puede quitar un tutor pre-registrado que aún no crea su cuenta."`
+
+**Response 200** → `message: "Pre-registro eliminado."`, `data: null`.
 
 ### `POST /admin/tutorias/cierre-periodo` — `ADMIN`
 
@@ -1096,7 +1133,7 @@ Desactiva **todas** las tutorías `ACTIVA` al terminar el periodo. Aplica los ef
 
 | Ruta | TUTORADO | TUTOR | ADMIN |
 |---|:-:|:-:|:-:|
-| `POST /auth/microsoft`, `/auth/google`, `/auth/registro` | público | público | público |
+| `POST /auth/signin`, `POST /auth/signup` | público | público | público |
 | `POST /auth/dev` (solo con `AUTH_DEV_HABILITADO=true`) | público | público | público |
 | `GET /usuarios/me` | ✅ | ✅ | ✅ |
 | `GET /materias`, `GET /materias/{id}` | — | ✅ | ✅ |

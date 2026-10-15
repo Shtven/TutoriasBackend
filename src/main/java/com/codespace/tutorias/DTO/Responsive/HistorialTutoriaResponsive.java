@@ -4,7 +4,7 @@ import java.util.List;
 
 public record HistorialTutoriaResponsive(
         int idTutoria,
-        String materia,
+        MateriaResponsive materia,
         int edificio,
         int aula,
         List<HorarioResponsive> horarios,

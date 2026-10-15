@@ -228,7 +228,7 @@ public class InscripcionService {
         return horarioRepository.findVigentesDeTutorado(matricula).stream()
                 .sorted(AgendaService.ORDEN_HORARIOS)
                 .map(h -> new SemanaItemResponsive(h.getDia(), h.getHoraInicio(), h.getHoraFin(),
-                        h.getTutoria().getIdTutoria(), h.getTutoria().getMateria().getMateria()))
+                        h.getTutoria().getIdTutoria(), mapping.toDTO(h.getTutoria().getMateria())))
                 .toList();
     }
 
@@ -250,7 +250,7 @@ public class InscripcionService {
     private ProximaSesionResponsive proximaConDetalle(AgendaService.Ocurrencia o) {
         Horario h = o.horario();
         Tutoria t = h.getTutoria();
-        return new ProximaSesionResponsive(t.getIdTutoria(), t.getMateria().getMateria(), h.getIdHorario(),
+        return new ProximaSesionResponsive(t.getIdTutoria(), mapping.toDTO(t.getMateria()), h.getIdHorario(),
                 o.fecha(), h.getDia(), h.getHoraInicio(), h.getHoraFin(), t.getEdificio(), t.getAula(),
                 h.getTemas().stream().map(Tema::getTema).toList(),
                 h.getHoraInicio().minusHours(Reglas.HORAS_RECORDATORIO), null);

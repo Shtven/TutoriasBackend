@@ -1,6 +1,7 @@
 package com.codespace.tutorias.Controllers;
 
 import com.codespace.tutorias.DTO.Request.DevLoginRequest;
+import com.codespace.tutorias.DTO.Responsive.LoginResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.AuthService;
 import jakarta.annotation.PostConstruct;
@@ -13,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * SOLO PRUEBAS. Login por correo sin proveedor externo, para probar la API
+ * SOLO PRUEBAS. Login por correo sin contraseña, para probar la API
  * con usuarios de datos mock. La ruta no existe si auth.dev.habilitado=false.
  */
 @RestController
@@ -28,11 +29,11 @@ public class DevAuthController {
 
     @PostConstruct
     void advertir() {
-        log.warn("auth.dev.habilitado=true: POST /auth/dev permite entrar sin proveedor. No usar en producción.");
+        log.warn("auth.dev.habilitado=true: POST /auth/dev permite entrar sin contraseña. No usar en producción.");
     }
 
     @PostMapping("/dev")
-    public ResponseEntity<?> loginDesarrollo(@Valid @RequestBody DevLoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponsive>> loginDesarrollo(@Valid @RequestBody DevLoginRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Login", authService.loginDesarrollo(request.correo())));
     }
 }

@@ -17,16 +17,27 @@ public class Usuario {
     @JoinColumn(name = "id_rol")
     private Rol rol;
 
-    /** MICROSOFT | GOOGLE. Null = pre-registro (se liga en el primer login). */
+    /**
+     * LOCAL = entra con contraseña. MICROSOFT | GOOGLE = cuenta del login
+     * anterior. Null = pre-registro (el signup lo reclama).
+     */
     private String proveedor;
 
-    /** Claim 'sub' del proveedor. */
+    /** Claim 'sub' del proveedor (solo MICROSOFT | GOOGLE). */
     private String idExterno;
+
+    /** BCrypt. Nunca sale en una respuesta ni en un log. */
+    private String passwordHash;
 
     public Usuario() {}
 
     public String nombreCompleto() {
         return nombre + " " + apellidos;
+    }
+
+    /** Sin contraseña todavía: pre-registro o cuenta de un proveedor externo. */
+    public boolean esReclamable() {
+        return passwordHash == null;
     }
 
     public String getMatricula() {
@@ -83,5 +94,13 @@ public class Usuario {
 
     public void setIdExterno(String idExterno) {
         this.idExterno = idExterno;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

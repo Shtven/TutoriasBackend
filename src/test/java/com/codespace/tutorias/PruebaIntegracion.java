@@ -2,7 +2,7 @@ package com.codespace.tutorias;
 
 import com.codespace.tutorias.Helpers.EmailHelper;
 import com.codespace.tutorias.JWT.JWTUtils;
-import com.codespace.tutorias.Services.VerificadorIdToken;
+import com.codespace.tutorias.Services.LimiteIntentos;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 /**
  * Base de las pruebas de integración: contexto completo contra PostgreSQL
  * con el esquema de db/supabase/001_esquema.sql, reloj ajustable y correo
- * y verificación de proveedores simulados.
+ * simulado.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -43,11 +44,14 @@ public abstract class PruebaIntegracion {
     @MockitoBean
     protected EmailHelper emailHelper;
 
-    @MockitoBean
-    protected VerificadorIdToken verificadorIdToken;
-
     @Autowired
     protected RelojPrueba reloj;
+
+    @Autowired
+    protected LimiteIntentos limiteIntentos;
+
+    @Autowired
+    protected PasswordEncoder passwordEncoder;
 
     @Autowired
     protected JdbcTemplate jdbc;
@@ -65,7 +69,8 @@ public abstract class PruebaIntegracion {
         jdbc.execute("TRUNCATE recordatorio, asistencia, sesion, inscripcion, comentarios, temas, " +
                 "horario, tutoria, materia, usuario RESTART IDENTITY CASCADE");
         reloj.fijar(LUNES, LocalTime.of(8, 0));
-        mvc = MockMvcBuilders.webAppContextSetup(wac)
+        limiteIntentos.reiniciar();
+        mvc =MockMvcBuilders.webAppContextSetup(wac)
                 .addFilters(wac.getBean("springSecurityFilterChain", Filter.class))
                 .build();
     }
@@ -78,6 +83,14 @@ public abstract class PruebaIntegracion {
         jdbc.update("INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol) " +
                         "VALUES (?, ?, ?, ?, (SELECT id_rol FROM rol WHERE rol = ?))",
                 matricula, nombre, apellidos, matricula.toLowerCase() + "@prueba.mx", rol);
+        return jwtUtils.generarToken(matricula, rol);
+    }
+
+    /** Usuario que ya creó su contraseña (proveedor LOCAL). */
+    protected String usuarioConPwd(String matricula, String correo, String rol, String pwd) {
+        jdbc.update("INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol, proveedor, password_hash) " +
+                        "VALUES (?, 'Nombre', 'Apellidos', ?, (SELECT id_rol FROM rol WHERE rol = ?), 'LOCAL', ?)",
+                matricula, correo, rol, passwordEncoder.encode(pwd));
         return jwtUtils.generarToken(matricula, rol);
     }
 
