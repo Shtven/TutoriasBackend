@@ -24,12 +24,12 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<?> handleBusinessException(BusinessException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
         return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationErrors(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errores = new HashMap<>();
 
         ex.getBindingResult().getFieldErrors().forEach(error -> {
@@ -44,64 +44,64 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ValidacionException.class)
-    public ResponseEntity<?> handleValidacionDeNegocio(ValidacionException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidacionDeNegocio(ValidacionException ex) {
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Error de validación", ex.getErrores()));
     }
 
     @ExceptionHandler(CredencialesInvalidasException.class)
-    public ResponseEntity<?> handleCredenciales(CredencialesInvalidasException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleCredenciales(CredencialesInvalidasException ex) {
         return error(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(DemasiadosIntentosException.class)
-    public ResponseEntity<?> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
         return error(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return error(HttpStatus.FORBIDDEN, "No tienes permiso para esta acción.");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<?> handleBodyIlegible(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleBodyIlegible(HttpMessageNotReadableException ex) {
         return error(HttpStatus.BAD_REQUEST, "El cuerpo de la petición no es válido.");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<?> handleTipoParametro(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleTipoParametro(MethodArgumentTypeMismatchException ex) {
         return error(HttpStatus.BAD_REQUEST, "Valor inválido para '" + ex.getName() + "'.");
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<?> handleParametroFaltante(MissingServletRequestParameterException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleParametroFaltante(MissingServletRequestParameterException ex) {
         return error(HttpStatus.BAD_REQUEST, "Falta el parámetro '" + ex.getParameterName() + "'.");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<?> handleRutaInexistente(NoResourceFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleRutaInexistente(NoResourceFoundException ex) {
         return error(HttpStatus.NOT_FOUND, "Ruta no encontrada.");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<?> handleMetodo(HttpRequestMethodNotSupportedException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleMetodo(HttpRequestMethodNotSupportedException ex) {
         return error(HttpStatus.METHOD_NOT_ALLOWED, "Método no permitido.");
     }
 
     /** Respaldo de los índices únicos (p. ej. dos inscripciones simultáneas). */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<?> handleIntegridad(DataIntegrityViolationException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleIntegridad(DataIntegrityViolationException ex) {
         log.warn("Restricción de BD violada: {}", ex.getMostSpecificCause().getMessage());
         return error(HttpStatus.BAD_REQUEST, "La operación entra en conflicto con datos existentes. Intenta de nuevo.");
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleInesperado(Exception ex) {
+    public ResponseEntity<ApiResponse<Void>> handleInesperado(Exception ex) {
         log.error("Error inesperado", ex);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor.");
     }
 
-    private ResponseEntity<?> error(HttpStatus status, String mensaje) {
+    private ResponseEntity<ApiResponse<Void>> error(HttpStatus status, String mensaje) {
         return ResponseEntity.status(status).body(new ApiResponse<>(false, mensaje, null));
     }
 }

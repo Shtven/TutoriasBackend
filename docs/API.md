@@ -29,7 +29,7 @@ Estos objetos se repiten en varias respuestas.
 ```json
 { "idMateria": 5, "nombre": "Estructuras de Datos", "nrc": 48215 }
 ```
-`nrc` corresponde a la columna `materia.identificador`.
+`nrc` corresponde a la columna `materia.identificador`. Todas las respuestas que incluyen la EE (`TutoriaResumen`, `Sesion`, historial, próxima sesión, choques y semana) la mandan con esta forma, nunca como texto.
 
 ### `UsuarioResumen`
 ```json
@@ -80,7 +80,7 @@ Representa una ocurrencia de un horario en una fecha. Puede existir en BD o ser 
   "idSesion": 88,
   "idHorario": 31,
   "idTutoria": 12,
-  "materia": "Estructuras de Datos",
+  "materia": { "idMateria": 5, "nombre": "Estructuras de Datos", "nrc": 48215 },
   "fecha": "2026-10-05",
   "dia": "LUNES",
   "horaInicio": "10:00",
@@ -358,7 +358,7 @@ Edificios con sus aulas, para los selects de la pantalla 10. El origen del catá
           "dia": "JUEVES",
           "horaInicio": "17:00",
           "horaFin": "19:00",
-          "conTutoria": { "idTutoria": 7, "materia": "Bases de Datos", "horaInicio": "16:00", "horaFin": "18:00" }
+          "conTutoria": { "idTutoria": 7, "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 }, "horaInicio": "16:00", "horaFin": "18:00" }
         }
       ]
     }
@@ -599,7 +599,7 @@ Matriz de la pantalla 14: cada tutorado contra cada sesión registrada.
   "success": true,
   "message": "Historial de asistencia",
   "data": {
-    "tutoria": { "idTutoria": 12, "materia": "Estructuras de Datos", "edificio": 2, "aula": 7,
+    "tutoria": { "idTutoria": 12, "materia": { "idMateria": 5, "nombre": "Estructuras de Datos", "nrc": 48215 }, "edificio": 2, "aula": 7,
                  "horarios": [ { "dia": "LUNES", "horaInicio": "10:00", "horaFin": "12:00" }, { "dia": "MIERCOLES", "horaInicio": "10:00", "horaFin": "12:00" } ],
                  "cupo": { "ocupados": 4, "maximo": 7, "disponibles": 3 } },
     "resumen": {
@@ -714,7 +714,7 @@ Inscribe al tutorado autenticado (pantalla 05).
   "data": {
     "proximaSesion": {
       "idTutoria": 7,
-      "materia": "Bases de Datos",
+      "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 },
       "fecha": "2026-10-06",
       "dia": "MARTES",
       "horaInicio": "16:00",
@@ -818,9 +818,9 @@ Horarios semanales de sus inscripciones activas, para el panel "Tu semana" (pant
   "success": true,
   "message": "Mi semana",
   "data": [
-    { "dia": "MARTES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": "Bases de Datos" },
-    { "dia": "JUEVES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": "Bases de Datos" },
-    { "dia": "VIERNES", "horaInicio": "08:00", "horaFin": "10:00", "idTutoria": 3, "materia": "Álgebra Lineal" }
+    { "dia": "MARTES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 } },
+    { "dia": "JUEVES", "horaInicio": "16:00", "horaFin": "18:00", "idTutoria": 7, "materia": { "idMateria": 3, "nombre": "Bases de Datos", "nrc": 48190 } },
+    { "dia": "VIERNES", "horaInicio": "08:00", "horaFin": "10:00", "idTutoria": 3, "materia": { "idMateria": 1, "nombre": "Álgebra Lineal", "nrc": 47702 } }
   ]
 }
 ```

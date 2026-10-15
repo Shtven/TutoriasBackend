@@ -10,7 +10,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ProximaSesionResponsive(
         Integer idTutoria,
-        String materia,
+        MateriaResponsive materia,
         Integer idHorario,
         LocalDate fecha,
         String dia,

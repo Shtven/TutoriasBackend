@@ -92,7 +92,7 @@ class InscripcionIntegracionTest extends PruebaIntegracion {
                 .andExpect(jsonPath("$.data.activas[0].inscripcion.fechaBaja").doesNotExist())
                 .andExpect(jsonPath("$.data.activas[0].inasistenciasPermitidas").value(2))
                 .andExpect(jsonPath("$.data.activas[0].proximaSesion.primera").value(true))
-                .andExpect(jsonPath("$.data.proximaSesion.materia").value("Estructuras de Datos"))
+                .andExpect(jsonPath("$.data.proximaSesion.materia.nombre").value("Estructuras de Datos"))
                 .andExpect(jsonPath("$.data.proximaSesion.fecha").value("2026-10-05"))
                 .andExpect(jsonPath("$.data.proximaSesion.temas", contains("Listas enlazadas")))
                 .andExpect(jsonPath("$.data.proximaSesion.recordatorioA").value("08:00"))

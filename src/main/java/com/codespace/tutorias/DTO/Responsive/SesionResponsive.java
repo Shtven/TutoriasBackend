@@ -8,7 +8,7 @@ public record SesionResponsive(
         Integer idSesion,
         int idHorario,
         int idTutoria,
-        String materia,
+        MateriaResponsive materia,
         LocalDate fecha,
         String dia,
         LocalTime horaInicio,

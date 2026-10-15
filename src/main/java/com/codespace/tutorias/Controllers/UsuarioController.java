@@ -1,5 +1,6 @@
 package com.codespace.tutorias.Controllers;
 
+import com.codespace.tutorias.DTO.Responsive.UsuarioResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,7 @@ public class UsuarioController {
     private UsuarioService usuarioService;
 
     @GetMapping("/me")
-    public ResponseEntity<?> me(@RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<ApiResponse<UsuarioResponsive>> me(@RequestAttribute("matricula") String matricula) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Usuario", usuarioService.obtenerActual(matricula)));
     }
 }

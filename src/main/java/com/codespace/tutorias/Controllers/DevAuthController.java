@@ -1,6 +1,7 @@
 package com.codespace.tutorias.Controllers;
 
 import com.codespace.tutorias.DTO.Request.DevLoginRequest;
+import com.codespace.tutorias.DTO.Responsive.LoginResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.AuthService;
 import jakarta.annotation.PostConstruct;
@@ -32,7 +33,7 @@ public class DevAuthController {
     }
 
     @PostMapping("/dev")
-    public ResponseEntity<?> loginDesarrollo(@Valid @RequestBody DevLoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponsive>> loginDesarrollo(@Valid @RequestBody DevLoginRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Login", authService.loginDesarrollo(request.correo())));
     }
 }

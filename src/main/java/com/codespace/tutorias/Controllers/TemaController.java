@@ -1,6 +1,7 @@
 package com.codespace.tutorias.Controllers;
 
 import com.codespace.tutorias.DTO.Request.TemaRequest;
+import com.codespace.tutorias.DTO.Responsive.TemaResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.TemaService;
 import jakarta.validation.Valid;
@@ -17,17 +18,17 @@ public class TemaController {
 
     @PostMapping("/horarios/{idHorario}/temas")
     @PreAuthorize("hasRole('TUTOR')")
-    public ResponseEntity<?> agregar(@PathVariable int idHorario,
-                                     @Valid @RequestBody TemaRequest request,
-                                     @RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<ApiResponse<TemaResponsive>> agregar(@PathVariable int idHorario,
+                                                               @Valid @RequestBody TemaRequest request,
+                                                               @RequestAttribute("matricula") String matricula) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Tema agregado.",
                 temaService.agregar(idHorario, matricula, request.tema())));
     }
 
     @DeleteMapping("/temas/{idTema}")
     @PreAuthorize("hasRole('TUTOR')")
-    public ResponseEntity<?> eliminar(@PathVariable int idTema,
-                                      @RequestAttribute("matricula") String matricula) {
+    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable int idTema,
+                                                      @RequestAttribute("matricula") String matricula) {
         temaService.eliminar(idTema, matricula);
         return ResponseEntity.ok(new ApiResponse<>(true, "Tema eliminado.", null));
     }

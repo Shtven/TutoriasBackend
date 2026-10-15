@@ -149,7 +149,7 @@ class TutoriaIntegracionTest extends PruebaIntegracion {
                 .andExpect(jsonPath("$.data", hasSize(3)))             // sin Bases de Datos (inscrita)
                 .andExpect(jsonPath("$.data[?(@.idTutoria == " + calculo + ")].cupo.disponibles").value(contains(0)))
                 .andExpect(jsonPath("$.data[?(@.idTutoria == " + prob + ")].choques[0].dia").value(contains("JUEVES")))
-                .andExpect(jsonPath("$.data[?(@.idTutoria == " + prob + ")].choques[0].conTutoria.materia").value(contains("Bases de Datos")))
+                .andExpect(jsonPath("$.data[?(@.idTutoria == " + prob + ")].choques[0].conTutoria.materia.nombre").value(contains("Bases de Datos")))
                 .andExpect(jsonPath("$.data[?(@.idTutoria == " + prob + ")].choques[0].conTutoria.horaInicio").value(contains("16:00")))
                 .andExpect(jsonPath("$.data[?(@.idTutoria == " + ed + ")].choques", contains(empty())));
 
@@ -187,7 +187,7 @@ class TutoriaIntegracionTest extends PruebaIntegracion {
         mvc.perform(getCon(valeria, url))
                 .andExpect(jsonPath("$.data.panelTutorado.estado").value("CHOQUE_HORARIO"))
                 .andExpect(jsonPath("$.data.panelTutorado.puedeInscribirse").value(false))
-                .andExpect(jsonPath("$.data.panelTutorado.choques[0].conTutoria.materia").value("Bases de Datos"));
+                .andExpect(jsonPath("$.data.panelTutorado.choques[0].conTutoria.materia.nombre").value("Bases de Datos"));
         jdbc.update("UPDATE inscripcion SET estado = 'BAJA', fecha_baja = now() WHERE id_inscripcion = ?", idOtra);
 
         // Llena.
