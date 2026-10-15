@@ -72,7 +72,7 @@ Error de negocio (`BusinessException`) → `400 Bad Request`:
 { "success": false, "message": "La tutoría ya no tiene lugares disponibles.", "data": null }
 ```
 
-Error de validación (`@Valid`) → `400` con `data` = mapa `campo → mensaje`:
+Error de validación (`@Valid`) → `400` con `data` = mapa `campo → mensaje`. Las claves son los nombres de campo del body. Los duplicados del signup (matrícula, correo) usan el mismo formato:
 
 ```json
 { "success": false, "message": "Error de validación", "data": { "comentario": "No puede exceder 255 caracteres." } }
@@ -84,10 +84,11 @@ Error de validación (`@Valid`) → `400` con `data` = mapa `campo → mensaje`:
 |---|---|
 | `200 OK` | Operación exitosa (también en altas). |
 | `400 Bad Request` | Regla de negocio incumplida, recurso inexistente o validación fallida. |
-| `401 Unauthorized` | JWT ausente, inválido o expirado. |
+| `401 Unauthorized` | JWT ausente, inválido o expirado. En `POST /auth/signin`: usuario o contraseña incorrectos. |
 | `403 Forbidden` | El rol no tiene acceso al endpoint. |
 | `404 Not Found` | La ruta no existe. |
 | `405 Method Not Allowed` | Método HTTP no soportado en la ruta. |
+| `429 Too Many Requests` | `POST /auth/signin` bloqueado por intentos fallidos. |
 | `500 Internal Server Error` | Error inesperado. |
 
 Todos los errores, incluidos 401, 403 y 404, usan la envoltura `ApiResponse`.
@@ -95,6 +96,22 @@ Todos los errores, incluidos 401, 403 y 404, usan la envoltura `ApiResponse`.
 Cuando un recurso existe pero pertenece a otro usuario (por ejemplo, la tutoría de otro tutor), la respuesta es `400` con el mensaje `"No tienes permiso sobre este recurso."`.
 
 Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: un rol sin permiso con un body inválido recibe `400`, no `403`. En ningún caso se ejecuta la acción.
+
+### CORS
+
+En producción no hay proxy: el navegador llama al backend desde el origen del front. `CORS_ALLOWED_ORIGINS` (lista separada por comas) debe incluir:
+
+| Entorno | Origen |
+|---|---|
+| Producción | `https://sistemadetutoriasfront.onrender.com` (Static Site del front en Render) |
+| Staging o PR previews | El origen que tengan, o un patrón como `https://sistemadetutoriasfront-pr-*.onrender.com` |
+| Build en local (`npm run preview`) | `http://localhost:4173` |
+
+El servidor de desarrollo de Vite (`5173`) usa su proxy y no necesita CORS, pero no estorba dejarlo.
+
+- Métodos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`. Cabeceras: `Authorization` y `Content-Type`.
+- Cada valor es un origen exacto (`scheme://host[:puerto]`) o un patrón con `*`. Se ignoran los espacios y la barra final. No se admite `*` a secas (`allowCredentials=true`), y un comodín amplio como `https://*.onrender.com` dejaría entrar a cualquier app de Render.
+- En Render la variable se define en el dashboard del servicio (Environment) y requiere redesplegar.
 
 ---
 
