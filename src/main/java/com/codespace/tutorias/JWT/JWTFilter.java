@@ -33,7 +33,9 @@ public class JWTFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         // El login no usa el JWT de sesión; un token viejo en el header no debe bloquearlo.
-        return request.getServletPath().startsWith("/auth/");
+        // URI sin context path: getServletPath() depende de cómo se monte el servlet.
+        String ruta = request.getRequestURI().substring(request.getContextPath().length());
+        return ruta.startsWith("/auth/");
     }
 
     @Override

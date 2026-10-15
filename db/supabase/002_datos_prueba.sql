@@ -4,11 +4,12 @@
 -- Requiere: 001_esquema.sql recién ejecutado (tablas vacías).
 -- Uso: SQL Editor de Supabase o psql "<connection string>" -f este archivo.
 --
--- Para entrar sin Microsoft/Google en pruebas: backend con
--- AUTH_DEV_HABILITADO=true y POST /auth/dev {"correo": "..."}:
---   Tutorada  Valeria Mendoza Cruz  zs23014587@estudiantes.uv.mx
---   Tutora    Rocío Hernández Aguilar zs21009342@estudiantes.uv.mx
---   Admin     Adriana Salas Ortega  asalas@uv.mx
+-- Todos los usuarios entran con POST /auth/signin y la contraseña de
+-- prueba "Tutorias2026" (solo datos mock; nunca en usuarios reales):
+--   Tutorada  Valeria Mendoza Cruz    S23014587  zs23014587@estudiantes.uv.mx
+--   Tutora    Rocío Hernández Aguilar S21009342  zs21009342@estudiantes.uv.mx
+--   Admin     Adriana Salas Ortega    25480      asalas@uv.mx
+-- Con AUTH_DEV_HABILITADO=true también sirve POST /auth/dev {"correo": "..."}.
 --
 -- Contenido:
 --   * Catálogo real de Experiencias Educativas de la Licenciatura en
@@ -30,6 +31,8 @@
 --     en Metodología de la programación y baja automática en Matemáticas
 --     discretas (pantalla 07); historial de Bases de datos (pantalla 08).
 --   * Comentarios de las pantallas 04, 08 y 11.
+--   * Luis Pérez Montiel (S21008800): tutor pre-registrado sin contraseña,
+--     para probar el alta de tutores con POST /auth/signup.
 -- =====================================================================
 
 BEGIN;
@@ -44,10 +47,12 @@ END $$;
 -- ---------------------------------------------------------------------
 -- Funciones auxiliares (solo viven en esta sesión)
 -- ---------------------------------------------------------------------
+-- pwd_hash = BCrypt de "Tutorias2026" (el mismo para todos los usuarios mock).
 CREATE FUNCTION pg_temp.usuario(p_matricula TEXT, p_nombre TEXT, p_apellidos TEXT, p_correo TEXT, p_rol TEXT)
 RETURNS VOID LANGUAGE sql AS $f$
-    INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol)
-    VALUES (p_matricula, p_nombre, p_apellidos, lower(p_correo), (SELECT id_rol FROM rol WHERE rol = p_rol));
+    INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol, proveedor, pwd_hash)
+    VALUES (p_matricula, p_nombre, p_apellidos, lower(p_correo), (SELECT id_rol FROM rol WHERE rol = p_rol),
+            'LOCAL', '$2a$10$HRC2/.1v2swcWwCYeCwk0.IzGqhpn70gZgpf38yO9US1ugr1oFJ1y');
 $f$;
 
 -- Busca la EE por nombre (los NRC son aleatorios).
@@ -196,6 +201,12 @@ BEGIN
     PERFORM pg_temp.usuario('S21002250', 'Ernesto', 'Vázquez Lara', 'zS21002250@estudiantes.uv.mx', 'TUTOR');
     PERFORM pg_temp.usuario('S21007711', 'Daniela', 'Ortiz Méndez', 'zS21007711@estudiantes.uv.mx', 'TUTOR');
     PERFORM pg_temp.usuario('S21003390', 'Alejandra', 'Ruiz Sosa', 'zS21003390@estudiantes.uv.mx', 'TUTOR');
+
+    -- Tutor autorizado por el admin que aún no crea su cuenta: el signup con
+    -- rol TUTOR, esta matrícula y este correo la reclama.
+    INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol)
+    VALUES ('S21008800', 'Luis', 'Pérez Montiel', 'zs21008800@estudiantes.uv.mx',
+            (SELECT id_rol FROM rol WHERE rol = 'TUTOR'));
 
     PERFORM pg_temp.usuario('S23014587', 'Valeria', 'Mendoza Cruz', 'zS23014587@estudiantes.uv.mx', 'TUTORADO');
     PERFORM pg_temp.usuario('S23016620', 'Andrea', 'Morales Pineda', 'zS23016620@estudiantes.uv.mx', 'TUTORADO');

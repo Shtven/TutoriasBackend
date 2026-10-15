@@ -11,7 +11,7 @@ Documentación del prototipo de pruebas. Está alineada con:
 
 | Documento | Contenido |
 |---|---|
-| [AUTENTICACION.md](AUTENTICACION.md) | Cómo funciona el login con Microsoft y Google, registro en el primer acceso, JWT propio, campo de proveedor y opciones para entrar al panel de administración. |
+| [AUTENTICACION.md](AUTENTICACION.md) | Login con matrícula o correo y contraseña, límite de intentos, alta de tutores (lista autorizada), administradores, JWT propio y despliegue del cambio. |
 | [API.md](API.md) | Referencia de todos los endpoints: ruta, roles, body, respuesta y validaciones. |
 | [REGLAS_DE_NEGOCIO.md](REGLAS_DE_NEGOCIO.md) | Estados, cupo, choques de horario, sesiones y pase de lista, bajas, recordatorios y correos. |
 | [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md) | Tablas, cambios aplicados al esquema recibido y cómo crear la BD en Supabase. |
@@ -24,9 +24,11 @@ Documentación del prototipo de pruebas. Está alineada con:
    1. `db/supabase/001_esquema.sql`: crea el esquema. **Es destructivo**: borra las tablas anteriores.
    2. `db/supabase/002_datos_prueba.sql` (opcional): las 54 EE reales de Ingeniería de Software (plan 2023) y datos de los mockups.
    3. `db/supabase/003_materias_plan_2019.sql` (opcional): catálogo de EE del plan 2019.
+
+   Si la BD ya existía con el esquema anterior (sin `usuario.pwd_hash`), no la recrees: aplica `db/supabase/004_contrasenas.sql`, que no borra datos, **antes** de desplegar el backend ([AUTENTICACION.md § 9](AUTENTICACION.md#9-despliegue-del-cambio)).
 2. **Variables de entorno:** copia `.env.example` a `.env` y llénalo. `DB_URL` es la cadena JDBC de Supabase.
 3. **Arrancar:** `./mvnw spring-boot:run`. Swagger UI queda en `/swagger-ui.html`.
-4. **Probar sin Microsoft ni Google:** con `AUTH_DEV_HABILITADO=true`, `POST /auth/dev` con el correo de un usuario de los datos de prueba (ver [AUTENTICACION.md § 8](AUTENTICACION.md#8-login-de-desarrollo)). **Nunca lo actives en un despliegue público.**
+4. **Entrar:** con los datos de prueba cargados, `POST /auth/signin` con la matrícula de un usuario y la contraseña de prueba que indica el encabezado de `002_datos_prueba.sql`. Opcional en local: con `AUTH_DEV_HABILITADO=true`, `POST /auth/dev` entra solo con el correo (ver [AUTENTICACION.md § 10](AUTENTICACION.md#10-login-de-desarrollo)). **Nunca lo actives en un despliegue público.**
 5. **Pruebas:** `./mvnw test` necesita un PostgreSQL. Por defecto usa `localhost:5433/tutorias_test`; se cambia con `TEST_DB_URL`, `TEST_DB_USERNAME` y `TEST_DB_PASSWORD`. Las pruebas recrean el esquema con el script de Supabase.
 
 ---
@@ -100,8 +102,8 @@ Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: 
 
 | # | Pantalla | Rol | Endpoints |
 |---|---|---|---|
-| 01 | Iniciar sesión | — | `POST /auth/microsoft`, `POST /auth/google` (pruebas: `POST /auth/dev`) |
-| 02 | Completar registro | — | `POST /auth/registro` |
+| 01 | Iniciar sesión | — | `POST /auth/signin` (pruebas: `POST /auth/dev`) |
+| 02 | Crear cuenta | — | `POST /auth/signup` |
 | — | Barra lateral (nombre, matrícula, rol) | Todos | `GET /usuarios/me` |
 | 03 | Explorar tutorías | TUTORADO | `GET /tutorias` |
 | 04 | Detalle de tutoría | TUTORADO | `GET /tutorias/{id}`, `GET /tutorias/{id}/comentarios`, `GET /inscripciones/semana` |
@@ -116,6 +118,7 @@ Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: 
 | 13 | Cerrar pase de lista | TUTOR | `GET /sesiones/{id}/lista` (bloque `cierre`), `POST /sesiones/{id}/cerrar-lista` |
 | 14 | Historial de asistencia | TUTOR | `GET /tutorias/mis-tutorias`, `GET /tutorias/{id}/historial-asistencia` |
 | 15 | Tutorías de la facultad | ADMIN | `GET /admin/resumen`, `GET /admin/tutorias`, `GET /admin/tutores`, `PATCH /tutorias/{id}/estado`, `POST /admin/tutorias/cierre-periodo` |
+| — | Tutores autorizados (pantalla pendiente en el front) | ADMIN | `POST /admin/tutores`, `DELETE /admin/tutores/{matricula}` |
 | 16 | Experiencias Educativas | ADMIN | `GET /materias`, `POST /materias`, `PUT /materias/{id}`, `DELETE /materias/{id}` |
 
 ---
@@ -124,7 +127,7 @@ Si el body es inválido, la validación (`400`) ocurre antes de revisar el rol: 
 
 | Antes | Ahora | Motivo |
 |---|---|---|
-| `POST /auth/signup`, `POST /auth/signin` (contraseña) | `POST /auth/microsoft`, `POST /auth/google`, `POST /auth/registro` | Acceso solo con proveedor externo; ya no se guardan contraseñas. |
+| `POST /auth/microsoft`, `POST /auth/google`, `POST /auth/registro` | `POST /auth/signin`, `POST /auth/signup` (matrícula o correo y contraseña con BCrypt) | El frontend dejó de usar Microsoft y Google (oct. 2026). El alta como `TUTOR` exige pre-registro del admin. |
 | `/tutoria` = una sesión con fecha | `/tutorias` = tutoría recurrente con horarios semanales | Una tutoría tiene horarios, y cada horario genera sesiones. |
 | `/horario` = disponibilidad del tutor | Los horarios pertenecen a una tutoría (`/tutorias`, `/horarios/{id}/temas`) | Nuevo modelo. |
 | `/asistencia` = inscripción + asistencia | `/inscripciones` y `/sesiones/{id}/lista` | Inscribirse y pasar lista son acciones distintas. |

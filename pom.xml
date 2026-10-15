@@ -71,11 +71,6 @@
         <version>0.11.5</version>
         <scope>runtime</scope>
     </dependency>
-    <!-- Verificacion de ID tokens de Microsoft/Google (JWKS) -->
-    <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-oauth2-jose</artifactId>
-    </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-security</artifactId>

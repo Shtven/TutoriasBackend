@@ -43,6 +43,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Error de validación", errores));
     }
 
+    @ExceptionHandler(ValidacionException.class)
+    public ResponseEntity<?> handleValidacionDeNegocio(ValidacionException ex) {
+        return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Error de validación", ex.getErrores()));
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<?> handleCredenciales(CredencialesInvalidasException ex) {
+        return error(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<?> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        return error(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
         return error(HttpStatus.FORBIDDEN, "No tienes permiso para esta acción.");

@@ -1,6 +1,7 @@
 package com.codespace.tutorias.Controllers;
 
 import com.codespace.tutorias.DTO.Request.CierrePeriodoRequest;
+import com.codespace.tutorias.DTO.Request.PreRegistroTutorRequest;
 import com.codespace.tutorias.DTO.Responsive.CierrePeriodoResponsive;
 import com.codespace.tutorias.Exceptions.ApiResponse;
 import com.codespace.tutorias.Services.AdminService;
@@ -38,6 +39,18 @@ public class AdminController {
     @GetMapping("/tutores")
     public ResponseEntity<?> tutores() {
         return ResponseEntity.ok(new ApiResponse<>(true, "Tutores", adminService.tutores()));
+    }
+
+    /** Autoriza una matrícula como tutor (docs/AUTENTICACION.md § Alta de tutores). */
+    @PostMapping("/tutores")
+    public ResponseEntity<?> preRegistrarTutor(@Valid @RequestBody PreRegistroTutorRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tutor autorizado.", adminService.preRegistrarTutor(request)));
+    }
+
+    @DeleteMapping("/tutores/{matricula}")
+    public ResponseEntity<?> quitarPreRegistro(@PathVariable String matricula) {
+        adminService.quitarPreRegistro(matricula);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Pre-registro eliminado.", null));
     }
 
     @PostMapping("/tutorias/cierre-periodo")

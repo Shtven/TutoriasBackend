@@ -1,293 +1,159 @@
-# Autenticación con proveedores externos
+# Autenticación con matrícula o correo y contraseña
 
-El sistema no maneja contraseñas. El usuario se identifica con su cuenta de **Microsoft** (institucional UV) o de **Google** (`gmail.com`). El backend verifica esa identidad y entrega su **propio JWT**, que es el que se usa en el resto de la API.
+El usuario entra con su **matrícula o su correo** y una **contraseña** que guarda el backend (cifrada con BCrypt). Si las credenciales son correctas, el backend entrega su **propio JWT**, que es el que se usa en el resto de la API.
 
-## 1. Cómo funciona
+El login con Microsoft y Google (OpenID Connect) se retiró en octubre de 2026: el frontend ya no lo usa. Las columnas `proveedor` e `id_externo` siguen en la tabla `usuario` para las cuentas que se crearon con él (ver [§ 6](#6-cuentas-creadas-con-microsoft-o-google)).
 
-El estándar es **OpenID Connect** (OIDC), una capa de identidad sobre OAuth 2.0. Participan tres partes:
-
-| Parte | Rol |
-|---|---|
-| **Proveedor** (Microsoft Entra ID / Google) | Pide usuario, contraseña y MFA, y emite un **ID token**. El sistema nunca ve la contraseña. |
-| **Frontend** (React) | Abre la ventana del proveedor con su librería oficial y recibe el ID token. |
-| **Backend** (Spring Boot) | Recibe el ID token, **verifica que sea auténtico**, busca o registra al usuario y entrega el JWT propio. |
-
-El **ID token** es un JWT firmado por el proveedor con su llave privada (RS256). Contiene, entre otros:
-
-| Claim | Significado |
-|---|---|
-| `iss` | Quién lo emitió (Google o el tenant de Microsoft). |
-| `aud` | Para qué aplicación se emitió: debe ser **nuestro** Client ID. |
-| `exp` | Expiración (≈1 hora). |
-| `sub` | Identificador único y permanente de la persona en ese proveedor. |
-| `email`, `name`, `given_name`, `family_name` | Datos del perfil. |
-| `tid` | (Microsoft) Id del tenant, es decir, de la organización. |
-| `email_verified` | (Google) Si el correo está verificado. |
-
-### Por qué el backend puede confiar en el token
-
-El backend descarga las **llaves públicas** del proveedor (JWKS) y comprueba la firma. Si alguien altera un solo carácter del token, la firma deja de ser válida. Después revisa `iss`, `aud`, `exp` y el dominio. Un token emitido para **otra** aplicación se rechaza por `aud`, aunque su firma sea válida.
-
-| Proveedor | Llaves públicas (JWKS) |
-|---|---|
-| Google | `https://www.googleapis.com/oauth2/v3/certs` |
-| Microsoft | `https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys` |
-
-Las llaves se guardan en caché. No hay que llamar al proveedor en cada request porque, después del login, la API usa el JWT propio.
-
-### Flujo completo
+## 1. Flujo
 
 ```mermaid
 sequenceDiagram
     actor U as Usuario
     participant F as Frontend (React)
-    participant P as Proveedor (Microsoft/Google)
     participant B as Backend
     participant DB as Base de datos
 
-    U->>F: "Continuar con Microsoft"
-    F->>P: loginPopup (MSAL / Google Identity Services)
-    P->>U: Usuario, contraseña, MFA
-    P-->>F: ID token (firmado por el proveedor)
-    F->>B: POST /auth/microsoft { idToken }
-    B->>P: Llaves públicas (JWKS, en caché)
-    B->>B: Verifica firma, iss, aud, exp y dominio
-    B->>DB: Busca usuario (proveedor + sub, o correo)
-    alt Ya registrado
-        B-->>F: { registroPendiente: false, token, usuario }
-    else Primer acceso
-        B-->>F: { registroPendiente: true, tokenRegistro, perfil }
-        F->>U: Pantalla 02: matrícula y rol
-        U->>F: S24011236 · TUTORADO
-        F->>B: POST /auth/registro { tokenRegistro, matricula, rol }
-        B->>DB: INSERT usuario
-        B-->>F: { registroPendiente: false, token, usuario }
+    alt Cuenta nueva (pantalla de registro)
+        U->>F: Nombre, apellidos, matrícula, correo, contraseña, rol
+        F->>B: POST /auth/signup
+        B->>DB: Valida duplicados y la lista de tutores autorizados
+        B->>DB: INSERT usuario (pwd_hash = BCrypt)
+        B-->>F: { token, usuario }
+    else Cuenta existente (pantalla de login)
+        U->>F: Matrícula o correo + contraseña
+        F->>B: POST /auth/signin { matricula | correo, pwd }
+        B->>B: Límite de intentos (cuenta e IP)
+        B->>DB: Busca usuario y compara el hash
+        B-->>F: { token, usuario } · 401 · 429
     end
     F->>B: Resto de la API con Authorization: Bearer <token>
 ```
 
-### El primer acceso en dos pasos
+Detalle de bodies, respuestas y mensajes de error: [API.md § 1](API.md#1-autenticación--auth-público).
 
-`usuario.matricula` e `id_rol` son `NOT NULL`, así que el usuario no se puede crear solo con los datos del proveedor. Por eso:
+## 2. Contraseñas
 
-1. `POST /auth/{proveedor}` verifica la identidad y, si el usuario no existe, devuelve un **`tokenRegistro`**. Es un JWT firmado por el backend, válido **15 minutos**, que contiene la identidad ya verificada: proveedor, `sub`, correo, nombre y apellidos.
-2. `POST /auth/registro` recibe ese `tokenRegistro` junto con la matrícula y el rol. El backend toma nombre y correo **del token**, no del body; el frontend no puede alterarlos.
+- Se guardan en `usuario.pwd_hash` con **BCrypt** (`BCryptPasswordEncoder` de Spring Security, costo 10). Nunca en texto plano, ni en logs, ni en una respuesta: `UsuarioResponsive` no expone el hash.
+- Entre **8 y 72 caracteres**. BCrypt solo usa los primeros 72 bytes, así que una contraseña con más bytes (p. ej. muchos caracteres acentuados o emojis) se rechaza en el signup en lugar de truncarse en silencio.
+- El signin responde **el mismo mensaje y el mismo código** (`401 Usuario o contraseña incorrectos.`) si la cuenta no existe, si la contraseña está mal o si la cuenta aún no tiene contraseña. Cuando la cuenta no existe, igual se calcula un BCrypt contra un hash señuelo, para que el tiempo de respuesta no delate qué matrículas o correos están registrados.
+- No hay recuperación de contraseña todavía. Mientras tanto, un admin puede asignar una nueva desde la BD ([§ 5](#5-administradores)).
 
-## 2. Reglas por proveedor
+### Límite de intentos (fuerza bruta)
 
-| | Microsoft | Google |
+`LimiteIntentos` cuenta los signin **fallidos** en una ventana fija de 15 minutos:
+
+| Llave | Máximo | Nota |
 |---|---|---|
-| Cuentas aceptadas | Tenant de la UV, correo `@estudiantes.uv.mx` | Correo `@gmail.com` |
-| Validación clave | `tid` debe ser el tenant de la UV; después, dominio del correo | `email_verified = true` y correo termina en `@gmail.com` |
-| `iss` esperado | `https://login.microsoftonline.com/{tid}/v2.0` | `https://accounts.google.com` o `accounts.google.com` |
-| Id permanente | `sub` (o `oid` + `tid`) | `sub` |
-| Nombre | `given_name` / `family_name` (claims opcionales; si faltan, se divide `name`) | `given_name` / `family_name` |
+| Cuenta | 5 | Se cuenta por matrícula aunque se entre por correo: alternar los dos no da más intentos. |
+| IP | 30 | IP real del cliente detrás del proxy de Render (`server.forward-headers-strategy=native`). |
 
-> **Importante (Microsoft):** no basta con revisar que el correo termine en `@estudiantes.uv.mx`. En aplicaciones multi-tenant, otra organización puede emitir tokens con un correo falso de ese dominio porque el claim `email` no está verificado. Primero se valida **`tid`** y después el dominio.
+Al llegar al máximo, esa llave recibe `429 Demasiados intentos fallidos. Intenta de nuevo en N minutos.` hasta que termina la ventana, **aunque la contraseña sea correcta**. Un login correcto limpia el contador de la cuenta.
 
-La matrícula **no** se compara con el correo; así se decidió por la limitación de Google.
+Los valores se cambian en `application.properties` (`auth.intentos.*`). El contador vive en memoria: sirve para una sola instancia y se reinicia en cada despliegue. Si el backend escala a varias instancias, habría que moverlo a la BD o a Redis.
 
-## 3. Configuración necesaria
+## 3. Estados de una cuenta
 
-### Microsoft Entra ID
+La restricción `ck_usuario_credencial` (en `001_esquema.sql` y `004_contrasenas.sql`) solo admite tres combinaciones:
 
-**App registrada:** "Sistema de tutorias", en el tenant de la UV y single-tenant ("Solo mi organización").
+| Estado | `proveedor` | `id_externo` | `pwd_hash` | ¿Puede iniciar sesión? |
+|---|---|---|---|---|
+| Pre-registro | `NULL` | `NULL` | `NULL` | No. El signup la reclama. |
+| Con contraseña | `LOCAL` | `NULL` | BCrypt | Sí |
+| Cuenta de Microsoft/Google | `MICROSOFT` · `GOOGLE` | `sub` | `NULL` | No. El signup la reclama. |
 
-| Dato | Valor |
-|---|---|
-| Id. de aplicación (cliente) | `8b9904dc-704e-4d58-a605-891edeef4df3` |
-| Id. de directorio (inquilino) | `3c907651-d8c6-4ca6-a8a4-6a242430e653` |
+**Reclamar** una cuenta sin contraseña: `POST /auth/signup` con su matrícula y **el mismo correo** le asigna contraseña, pasa a `LOCAL` y conserva su rol e historial. Nombre y apellidos se toman del body.
 
-Ninguno de los dos es secreto. **No se crean secretos ni certificados**: una SPA es un cliente público.
+## 4. Quién puede darse de alta como tutor
 
-1. **App registration** en el portal de Azure → plataforma **SPA**, con redirect URI del frontend (`http://localhost:5173`, dominio de producción).
-2. Tipo de cuenta:
-   - **Ideal:** registrar la app **dentro del tenant de la UV** (single-tenant). Normalmente lo hace TI de la UV.
-   - **Alternativa:** registrarla en un tenant propio como **multi-tenant** y validar `tid` = tenant UV en el backend. Riesgo: si la UV tiene deshabilitado el consentimiento de usuario, se necesitará consentimiento de un administrador de la UV.
-3. Agregar claims opcionales `email`, `given_name` y `family_name` al ID token (Token configuration).
-4. **Tenant ID de la UV: `3c907651-d8c6-4ca6-a8a4-6a242430e653`**. Es el mismo para `uv.mx` y `estudiantes.uv.mx` (cuentas administradas en la nube). Se verificó con el `issuer` de `https://login.microsoftonline.com/estudiantes.uv.mx/v2.0/.well-known/openid-configuration`. En `MICROSOFT_TENANT_ID` va **el GUID**, no el dominio: el backend lo compara con el claim `tid`.
+El signup acepta `TUTORADO` o `TUTOR`; `ADMIN` nunca. Un `TUTOR` puede publicar tutorías, pasar lista y aplicar bajas automáticas a tutorados reales, así que **solo se da de alta si está en la lista de tutores autorizados**:
 
-#### Frontend (React + MSAL)
+1. El admin pre-registra la matrícula y el correo con `POST /admin/tutores` (o por SQL). La fila queda como `TUTOR` sin contraseña.
+2. La persona hace `POST /auth/signup` con `rol: "TUTOR"`, esa matrícula y ese correo, y elige su contraseña.
+3. Si la matrícula no está en la lista, el signup responde `400` con `data.rol: "Tu matrícula no está autorizada como tutor. Pide al administrador que te registre."`.
 
-```js
-// authConfig.js
-import { PublicClientApplication } from "@azure/msal-browser";
+`DELETE /admin/tutores/{matricula}` quita un pre-registro que todavía no crea su cuenta.
 
-export const msal = new PublicClientApplication({
-  auth: {
-    clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID,
-    authority: "https://login.microsoftonline.com/3c907651-d8c6-4ca6-a8a4-6a242430e653",
-    redirectUri: window.location.origin,
-  },
-  cache: { cacheLocation: "sessionStorage" },
-});
+La regla vive en el backend: aunque el front oculte el selector de rol, cualquiera puede llamar a la API directamente.
 
-// Botón "Continuar con Microsoft" (pantalla 01)
-await msal.initialize();
-const r = await msal.loginPopup({
-  scopes: ["openid", "profile", "email"],
-  prompt: "select_account",
-  domainHint: "estudiantes.uv.mx",
-});
-const res = await fetch(`${API}/auth/microsoft`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ idToken: r.idToken }), // idToken, NO accessToken
-});
-const { success, message, data } = await res.json();
-// data.registroPendiente ? pantalla 02 con data.perfil y data.tokenRegistro
-//                        : guardar data.token y entrar según data.usuario.rol
+> **Riesgo conocido:** el signup no verifica que la persona controle el correo. Quien conozca la matrícula y el correo institucional de un tutor pre-registrado (o de una cuenta de Microsoft/Google) podría reclamarla antes que su dueño. Para cerrarlo hay que confirmar el correo (código o enlace enviado por SendGrid) antes de activar la cuenta. Mientras no exista, conviene pre-registrar a los tutores poco antes de que creen su cuenta y revisar que cada uno pueda entrar.
+
+## 5. Administradores
+
+El rol `ADMIN` nunca se asigna desde la API. Su matrícula no tiene el formato `S` + 8 dígitos, así que tampoco pasa por el signup. Se crean y se les asigna contraseña en la BD. Supabase trae `pgcrypto` en el esquema `extensions`, y `crypt(..., gen_salt('bf'))` genera un hash `$2a$` que el backend acepta tal cual:
+
+```sql
+-- Alta (si no existe)
+INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol)
+VALUES ('25480', 'Adriana', 'Salas Ortega', 'asalas@uv.mx',
+        (SELECT id_rol FROM rol WHERE rol = 'ADMIN'));
+
+-- Contraseña (también sirve para restablecer la de cualquier usuario)
+UPDATE usuario
+SET proveedor = 'LOCAL', id_externo = NULL,
+    pwd_hash = extensions.crypt('<contraseña>', extensions.gen_salt('bf', 10))
+WHERE matricula = '25480';
+
+-- Promover a alguien que ya tiene cuenta
+UPDATE usuario SET id_rol = (SELECT id_rol FROM rol WHERE rol = 'ADMIN')
+WHERE matricula = '25480';
 ```
 
-#### Errores comunes
+En PostgreSQL local, `pgcrypto` se activa con `CREATE EXTENSION pgcrypto;` y las funciones se llaman sin el prefijo `extensions.`.
 
-| Síntoma | Causa | Solución |
-|---|---|---|
-| `AADSTS50011` (redirect URI) | El origen del frontend no está registrado. | Agregar el URI exacto en Authentication → plataforma SPA. |
-| `AADSTS65001` / "Necesita aprobación del administrador" | La UV no permite que el usuario dé consentimiento. | Un administrador de la UV concede *admin consent* a la app. |
-| `AADSTS700016` (app no encontrada) | App single-tenant registrada en otro tenant. | Registrarla en el tenant UV o como multi-tenant. |
-| `Token del proveedor inválido o expirado.` | Se envió el `accessToken` (su `aud` es Microsoft Graph), el `MICROSOFT_CLIENT_ID` no coincide o el token expiró. | Enviar `idToken` y revisar el client ID. Decodificar el token en jwt.ms para ver `aud`, `iss` y `tid`. |
-| `Solo se permiten cuentas @estudiantes.uv.mx.` | Cuenta de otro tenant, cuenta `@uv.mx` o `MICROSOFT_TENANT_ID` con el dominio en vez del GUID. | Revisar `tid` y `preferred_username` en jwt.ms. |
-| `El acceso con Microsoft no está configurado.` | Faltan `MICROSOFT_CLIENT_ID` o `MICROSOFT_TENANT_ID` en el backend. | Configurar las variables y reiniciar. |
+Recomendaciones:
 
-### Google
+- mantener los endpoints de admin bajo `/admin/**` con `hasRole('ADMIN')`;
+- usar un JWT de menor vigencia para `ADMIN`;
+- registrar en una bitácora las acciones de admin (alta o baja de EE, desactivar tutorías, pre-registro de tutores).
 
-1. Google Cloud Console → **OAuth consent screen** (External) → **Credentials** → OAuth client ID tipo **Web application**, con *Authorized JavaScript origins* del frontend.
-2. Mientras la app esté en modo **Testing**, solo los correos agregados como *test users* (máximo 100) pueden entrar. Esto sirve para el prototipo.
+## 6. Cuentas creadas con Microsoft o Google
 
-### Variables de entorno (backend)
+Las cuentas registradas con el login anterior tienen `proveedor` = `MICROSOFT` o `GOOGLE` y no tienen contraseña, así que **no pueden iniciar sesión** hasta que la reclaman con el signup ([§ 3](#3-estados-de-una-cuenta)). Su historial (inscripciones, tutorías, asistencia) se conserva porque la matrícula no cambia.
 
-| Variable | Uso |
-|---|---|
-| `GOOGLE_CLIENT_ID` | `aud` esperado en tokens de Google. |
-| `MICROSOFT_CLIENT_ID` | `aud` esperado en tokens de Microsoft. |
-| `MICROSOFT_TENANT_ID` | Tenant de la UV (valida `tid` e `iss`). |
-| `API_KEY` | Firma del JWT propio (ya existe; mínimo 32 caracteres). |
-| `API_JWT_EXPIRATION` | Vigencia del JWT propio en ms (ya existe). |
-| `AUTH_DEV_HABILITADO` | `true` solo en pruebas: habilita `POST /auth/dev` (§ 8). Por defecto `false`. |
+Si algún día se vuelve al login institucional, la app de Entra ID sigue registrada en el tenant de la UV (cliente `8b9904dc-704e-4d58-a605-891edeef4df3`, tenant `3c907651-d8c6-4ca6-a8a4-6a242430e653`). El código anterior está en el historial de git, antes del commit que agregó `/auth/signin`.
 
-Si falta el Client ID de un proveedor, su endpoint responde `"El acceso con Google no está configurado."` (o con Microsoft). El resto de la API funciona igual.
+## 7. JWT de sesión
 
-Los dominios permitidos se configuran en `application.properties` con `auth.google.dominio` (por defecto `gmail.com`) y `auth.microsoft.dominio` (por defecto `estudiantes.uv.mx`).
-
-### Librerías
-
-- **Frontend:** `@azure/msal-browser` (+ `@azure/msal-react`) y Google Identity Services (`@react-oauth/google`). Ambas entregan el ID token: MSAL en `result.idToken`, Google en `credential`.
-- **Backend:** `spring-security-oauth2-jose` provee `NimbusJwtDecoder`, que descarga y cachea las JWKS y valida firma y expiración. Se le agregan validadores de `iss`, `aud`, `tid` y dominio (clase `VerificadorIdToken`). No se usa el login con redirección de Spring (`oauth2-client`), porque el frontend obtiene el token.
-
-## 4. JWT propio
-
-Después de verificar al usuario, el backend emite su propio JWT (HS256, igual que hoy):
+Después de validar la contraseña, el backend emite su propio JWT (HS256):
 
 | Claim | Valor |
 |---|---|
 | `sub` | Matrícula (`"S23014587"`) |
 | `rol` | `TUTORADO` · `TUTOR` · `ADMIN` |
-| `tipo` | `SESION`. El `tokenRegistro` lleva `REGISTRO` y la API lo rechaza con `401`. |
+| `tipo` | `SESION` |
 | `iat`, `exp` | Emisión y expiración (`API_JWT_EXPIRATION`) |
 
-- Se envía como `Authorization: Bearer <token>`.
-- **Cerrar sesión:** el frontend descarta el token (la API no guarda sesiones). Opcionalmente también cierra la sesión del proveedor con `logoutPopup` de MSAL.
+- Se envía como `Authorization: Bearer <token>`. El frontend toma el rol y la matrícula **del token**.
+- No hay refresh token: al llegar a `exp`, el frontend cierra la sesión.
+- **Cerrar sesión:** el frontend descarta el token (la API no guarda sesiones).
 - Si el rol cambia en la BD, el cambio aplica en el siguiente login.
+- `/auth/**` ignora el header `Authorization`: un token vencido no bloquea el login.
+- Con un token inválido o vencido, la API responde `401`; con un rol sin permiso, `403`. Ante un 401 el front cierra la sesión (salvo en `/auth/signin`).
 
-## 5. ¿La tabla `usuario` necesita un campo de proveedor?
+## 8. Configuración
 
-**Sí; ya está aplicado** en `db/supabase/001_esquema.sql` (detalle en [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md#cambios-aplicados-al-esquema-recibido)):
+| Variable / propiedad | Uso |
+|---|---|
+| `API_KEY` | Firma del JWT (mínimo 32 caracteres). |
+| `API_JWT_EXPIRATION` | Vigencia del JWT en ms. |
+| `auth.intentos.max-por-cuenta` / `max-por-ip` / `ventana-minutos` | Límite de intentos (5 / 30 / 15). |
+| `AUTH_DEV_HABILITADO` | `true` solo en pruebas: habilita `POST /auth/dev` (§ 10). Por defecto `false`. |
 
-```sql
-proveedor   VARCHAR(20),   -- 'MICROSOFT' | 'GOOGLE'; NULL = pre-registro
-id_externo  VARCHAR(255),  -- claim 'sub' del proveedor
-CREATE UNIQUE INDEX ux_usuario_proveedor_id ON usuario (proveedor, id_externo);
-```
+## 9. Despliegue del cambio
 
-Motivos:
+`ddl-auto=validate` impide arrancar si falta la columna `pwd_hash`, así que el orden importa:
 
-1. **Identidad estable.** OIDC define `sub` como el identificador permanente. El correo puede cambiar y en Microsoft es un claim opcional y modificable. Si se busca al usuario solo por correo, un correo reasignado o falsificado daría acceso a la cuenta de otra persona.
-2. **Saber con qué proveedor entra cada usuario.** La pantalla 02 muestra la insignia `MICROSOFT`. Además, un usuario queda ligado a un solo proveedor.
-3. **Pre-registro de administradores.** Se puede insertar un usuario con `proveedor` e `id_externo` en `NULL`. En su primer login se encuentra por correo y se ligan esos campos (ver opción A abajo).
+1. Aplicar `db/supabase/004_contrasenas.sql` en Supabase (no borra datos; el backend anterior sigue funcionando con el esquema nuevo).
+2. Desplegar el backend.
+3. Asignar contraseña a los admins (§ 5) y pre-registrar a los tutores que todavía no tienen cuenta (§ 4).
 
-**Búsqueda en el login:**
+## 10. Login de desarrollo
 
-1. Por `proveedor` + `id_externo`.
-2. Si no hay resultado: por correo **solo** si esa fila tiene `id_externo IS NULL` (pre-registro), y se liga.
-3. Si tampoco: primer acceso → `tokenRegistro`.
-
-Si la misma persona entra después con el otro proveedor, su correo es distinto (los dominios no se cruzan). Se le pedirá registrarse y el registro fallará porque la matrícula ya existe: *"La matrícula ya está registrada con otra cuenta."*
-
-## 6. Opciones para entrar al panel de administración
-
-`POST /auth/registro` solo acepta `TUTORADO` y `TUTOR`. El rol `ADMIN` nunca se asigna desde la API.
-
-### Opción A — Rol en BD con el mismo login (recomendada para el prototipo)
-
-El admin entra con Microsoft o Google como cualquier usuario. Su fila tiene `id_rol` = ADMIN, el JWT lleva `rol: ADMIN` y el frontend lo manda al panel de administración.
-
-```sql
--- A1. Pre-registro (antes de su primer login; se liga por correo al entrar)
-INSERT INTO usuario (matricula, nombre, apellidos, correo, id_rol)
-VALUES ('25480', 'Adriana', 'Salas Ortega', 'asalas@uv.mx',
-        (SELECT id_rol FROM rol WHERE rol = 'ADMIN'));
-
--- A2. Promoción (ya se registró como tutor o tutorado)
-UPDATE usuario SET id_rol = (SELECT id_rol FROM rol WHERE rol = 'ADMIN')
-WHERE matricula = '25480';
-```
-
-- ✅ No hay que construir nada extra; usa la misma pantalla de login.
-- ⚠️ Cambiar admins requiere acceso a la BD.
-
-### Opción B — Lista blanca por configuración
-
-Variable `ADMIN_CORREOS=asalas@uv.mx,otro@uv.mx`. En cada login, si el correo está en la lista, el rol se fuerza a `ADMIN` y se actualiza la BD.
-
-- ✅ No requiere acceso a la BD; es auditable en la configuración del despliegue.
-- ⚠️ Cambiar la lista requiere redesplegar o reiniciar.
-
-### Opción C — Roles de aplicación de Microsoft Entra ID (para una versión formal)
-
-En la App registration se define un *App role* `Admin`. TI de la UV lo asigna a personas o a grupos, y el ID token trae `roles: ["Admin"]`. El backend lo traduce a `ADMIN` en cada login.
-
-- ✅ Altas y bajas centralizadas en la UV y revocación inmediata en el siguiente login. Es la opción más seria.
-- ⚠️ Requiere que la app esté en el tenant de la UV y que TI participe. Solo funciona con cuentas Microsoft.
-
-### Opción D — Credenciales locales separadas (no recomendada)
-
-Usuario y contraseña propios del panel, con 2FA. Vuelve a introducir el manejo de contraseñas que se acaba de eliminar.
-
-### Recomendación
-
-- **Ahora:** opción A (pre-registro A1).
-- **Al formalizar:** migrar a la opción C.
-- **En ambos casos:**
-  - mantener los endpoints de admin bajo `/admin/**` con `hasRole('ADMIN')`;
-  - usar un JWT de menor vigencia para `ADMIN`;
-  - registrar en una bitácora las acciones de admin (alta o baja de EE, desactivar tutorías).
-
-## 7. Endpoints de autenticación
-
-Ver detalle en [API.md § Autenticación](API.md#1-autenticación--auth-público).
-
-| Método | Ruta | Uso |
-|---|---|---|
-| `POST` | `/auth/microsoft` | Login con ID token de Microsoft. |
-| `POST` | `/auth/google` | Login con ID token de Google. |
-| `POST` | `/auth/registro` | Completa el primer acceso (matrícula y rol). |
-| `POST` | `/auth/dev` | Solo pruebas (§ 8). |
-| `GET` | `/usuarios/me` | Datos del usuario autenticado. |
-
-## 8. Login de desarrollo
-
-Para probar la API (Postman, frontend local) sin configurar Microsoft ni Google:
+Para probar la API sin contraseña (Postman, frontend local):
 
 1. Arranca el backend con `AUTH_DEV_HABILITADO=true`. Al iniciar, el log muestra una advertencia.
-2. Llama `POST /auth/dev` con `{"correo": "..."}` de un usuario existente. Responde igual que un login normal.
+2. Llama `POST /auth/dev` con `{"correo": "..."}` de un usuario existente. Responde igual que un signin.
 
-Con `002_datos_prueba.sql` cargado:
-
-| Rol | Usuario | Correo |
-|---|---|---|
-| TUTORADO | Valeria Mendoza Cruz | `zs23014587@estudiantes.uv.mx` |
-| TUTOR | Rocío Hernández Aguilar | `zs21009342@estudiantes.uv.mx` |
-| ADMIN | Adriana Salas Ortega | `asalas@uv.mx` |
+Con `002_datos_prueba.sql` cargado no hace falta: todos los usuarios de prueba tienen la contraseña que indica el encabezado de ese archivo, y además hay un tutor pre-registrado (`S21008800`) para probar el alta de tutores.
 
 Cuando la variable es `false` (el valor por defecto), la ruta no existe y responde `404`. **Nunca actives esta opción en un despliegue accesible desde internet**: cualquiera podría entrar como cualquier usuario sabiendo su correo.

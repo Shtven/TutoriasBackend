@@ -15,9 +15,10 @@ Se crea una **BD nueva**: no se migran datos, porque los anteriores eran de prue
    | `001_esquema.sql` | **Destructivo**: borra las tablas del esquema anterior y del actual. Crea el esquema, activa RLS y siembra `rol` y `aula` (provisional). |
    | `002_datos_prueba.sql` | Opcional. Catálogo real de Ingeniería de Software, plan 2023 (54 EE, NRC aleatorios), y datos de los mockups: 11 tutorías, 46 inscripciones, historial. Rechaza ejecutarse si ya hay datos. |
    | `003_materias_plan_2019.sql` | Opcional. 44 EE del plan 2019 de Administración (NRC sintéticos). |
+   | `004_contrasenas.sql` | Solo para una BD creada antes del login con contraseña: agrega `usuario.pwd_hash` y la restricción de credenciales sin borrar datos. Se aplica **antes** de desplegar el backend. |
 
 2. **Cadena de conexión:** Project Settings → Database → Connection string (JDBC). Va en `DB_URL`, y el usuario y la contraseña en `DB_USERNAME` y `DB_PASSWORD`.
-3. **Administradores:** se asignan por SQL (ver [AUTENTICACION.md § 6](AUTENTICACION.md#6-opciones-para-entrar-al-panel-de-administración)).
+3. **Administradores:** se asignan por SQL con su contraseña (ver [AUTENTICACION.md § 5](AUTENTICACION.md#5-administradores)).
 
 ### RLS (Row Level Security)
 
@@ -28,7 +29,7 @@ Supabase expone el esquema `public` por su API REST con la *anon key*. El script
 | Tabla | Descripción | Columnas clave |
 |---|---|---|
 | `rol` | Catálogo: `TUTORADO`, `TUTOR`, `ADMIN`. | `rol` único |
-| `usuario` | Persona que entra con Microsoft o Google. Sin contraseña. | PK `matricula` (con `S`); `correo` único y en minúsculas; `id_rol`; `proveedor` + `id_externo` únicos |
+| `usuario` | Persona que entra con matrícula o correo y contraseña. | PK `matricula` (con `S`); `correo` único y en minúsculas; `id_rol`; `pwd_hash` (BCrypt); `proveedor` + `id_externo` de las cuentas de Microsoft/Google |
 | `materia` | Experiencia Educativa (EE). | `identificador` (= NRC) único |
 | `aula` | Catálogo de lugares. | PK (`edificio`, `aula`) |
 | `tutoria` | Tutoría recurrente de un tutor sobre una EE, en un lugar fijo. | `id_materia`, `matricula_tutor`, FK (`edificio`, `aula`), `estado` (`ACTIVA`/`INACTIVA`) |
@@ -61,7 +62,7 @@ erDiagram
 
 **Respecto al esquema anterior:**
 
-- **Se eliminan:** `permisos`, `usuario.pwd`, `asistencia.calificacion`.
+- **Se eliminan:** `permisos`, `asistencia.calificacion`. `usuario.pwd` (texto plano) se reemplaza por `usuario.pwd_hash` (BCrypt).
 - **Cambian:**
   - `apellidoP` y `apellidoM` se unen en `apellidos`;
   - `matricula` vuelve a `varchar`;
@@ -74,9 +75,14 @@ erDiagram
 
 Todos están en `001_esquema.sql` y en el DBML.
 
-### 1. `usuario`: proveedor e id externo
+### 1. `usuario`: contraseña, proveedor y pre-registro
 
-`proveedor` (`MICROSOFT` | `GOOGLE`) + `id_externo` (claim `sub`), únicos en pareja. Las dos columnas son *nullable* para permitir el pre-registro de administradores. Motivo: [AUTENTICACION.md § 5](AUTENTICACION.md#5-la-tabla-usuario-necesita-un-campo-de-proveedor). Además, `correo` se guarda en minúsculas (`CHECK`).
+- `pwd_hash VARCHAR(100)`: hash BCrypt de la contraseña. Nunca se guarda la contraseña.
+- `proveedor`: `LOCAL` (entra con contraseña), `MICROSOFT` o `GOOGLE` (cuentas creadas con el login anterior, junto con `id_externo` = claim `sub`), o `NULL` (pre-registro).
+- `ck_usuario_credencial` solo admite tres combinaciones: pre-registro (las tres columnas en `NULL`), `LOCAL` con `pwd_hash`, o proveedor externo con `id_externo` y sin `pwd_hash`. El pre-registro es la lista de tutores autorizados: el signup lo reclama. Detalle en [AUTENTICACION.md § 3](AUTENTICACION.md#3-estados-de-una-cuenta).
+- Para una BD que ya existía: `004_contrasenas.sql` hace este cambio sin borrar datos.
+
+Además, `correo` se guarda en minúsculas (`CHECK`).
 
 ### 2. `inscripcion`: ligada a la tutoría en lugar del horario
 

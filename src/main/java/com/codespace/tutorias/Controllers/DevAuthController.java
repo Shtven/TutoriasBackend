@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * SOLO PRUEBAS. Login por correo sin proveedor externo, para probar la API
+ * SOLO PRUEBAS. Login por correo sin contraseña, para probar la API
  * con usuarios de datos mock. La ruta no existe si auth.dev.habilitado=false.
  */
 @RestController
@@ -28,7 +28,7 @@ public class DevAuthController {
 
     @PostConstruct
     void advertir() {
-        log.warn("auth.dev.habilitado=true: POST /auth/dev permite entrar sin proveedor. No usar en producción.");
+        log.warn("auth.dev.habilitado=true: POST /auth/dev permite entrar sin contraseña. No usar en producción.");
     }
 
     @PostMapping("/dev")
