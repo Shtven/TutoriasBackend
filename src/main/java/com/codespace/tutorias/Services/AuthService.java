@@ -56,6 +56,9 @@ public class AuthService {
     @Autowired
     private LimiteIntentos limite;
 
+    @Autowired
+    private TurnoBcrypt turnoBcrypt;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -66,7 +69,10 @@ public class AuthService {
     /** Se compara contra él cuando no hay cuenta, para que tarde lo mismo que un fallo real. */
     private volatile String hashSenuelo;
 
-    @Transactional(readOnly = true)
+    /**
+     * Sin @Transactional a propósito: la única consulta abre y cierra la suya,
+     * y BCrypt (lento) no retiene una conexión del pool mientras espera turno.
+     */
     public LoginResponsive signin(SigninRequest request, String ip) {
         boolean porCorreo = request.correo() != null && !request.correo().isBlank();
         boolean porMatricula = request.matricula() != null && !request.matricula().isBlank();
@@ -86,14 +92,19 @@ public class AuthService {
         limite.verificar(cuenta, ip);
 
         Optional<Usuario> conPwd = usuario.filter(u -> !u.esReclamable());
-        if (conPwd.isEmpty() || !coincide(request.pwd(), conPwd.get().getPasswordHash())) {
-            if (conPwd.isEmpty()) coincide(request.pwd(), senuelo());
+        turnoBcrypt.ejecutar(() -> comprobarContrasena(conPwd, request.pwd(), cuenta, ip));
+        return sesion(conPwd.get());
+    }
+
+    private void comprobarContrasena(Optional<Usuario> conPwd, String pwd, String cuenta, String ip) {
+        // Otra vez: mientras esperaba turno pudieron llegar los fallos que bloquean.
+        limite.verificar(cuenta, ip);
+        if (conPwd.isEmpty() || !coincide(pwd, conPwd.get().getPasswordHash())) {
+            if (conPwd.isEmpty()) coincide(pwd, senuelo());
             limite.registrarFallo(cuenta, ip);
             throw new CredencialesInvalidasException();
         }
-
         limite.registrarExito(cuenta);
-        return sesion(conPwd.get());
     }
 
     /**

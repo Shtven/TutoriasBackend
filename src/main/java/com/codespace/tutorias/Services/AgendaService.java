@@ -21,6 +21,9 @@ import java.util.*;
 @Service
 public class AgendaService {
 
+    /** Hasta dónde se busca la próxima sesión de un horario. */
+    private static final int SEMANAS_PROXIMA = 6;
+
     /** Orden de presentación: día de la semana y hora de inicio. */
     public static final Comparator<Horario> ORDEN_HORARIOS = Comparator
             .comparing((Horario h) -> Dia.de(h.getDia()).ordinal())
@@ -106,13 +109,31 @@ public class AgendaService {
         if (horarios.isEmpty()) return Optional.empty();
 
         LocalDate hoy = reloj.hoy();
+        return proxima(horarios, registradas(horarios, hoy, hoy.plusWeeks(SEMANAS_PROXIMA)), hoy);
+    }
+
+    /** Próxima ocurrencia de cada tutoría (idTutoria) con una sola consulta de sesiones. */
+    public Map<Integer, Ocurrencia> proximas(Collection<Tutoria> tutorias) {
+        Map<Integer, List<Horario>> porTutoria = new LinkedHashMap<>();
+        tutorias.forEach(t -> porTutoria.put(t.getIdTutoria(), activos(t)));
+        List<Horario> todos = porTutoria.values().stream().flatMap(List::stream).toList();
+        Map<Integer, Ocurrencia> resultado = new HashMap<>();
+        if (todos.isEmpty()) return resultado;
+
+        LocalDate hoy = reloj.hoy();
+        Map<String, Sesion> registradas = registradas(todos, hoy, hoy.plusWeeks(SEMANAS_PROXIMA));
+        porTutoria.forEach((id, horarios) ->
+                proxima(horarios, registradas, hoy).ifPresent(o -> resultado.put(id, o)));
+        return resultado;
+    }
+
+    private Optional<Ocurrencia> proxima(List<Horario> horarios, Map<String, Sesion> registradas, LocalDate hoy) {
         ZonedDateTime ahora = reloj.ahora();
-        Map<String, Sesion> registradas = registradas(horarios, hoy, hoy.plusWeeks(6));
 
         Ocurrencia mejor = null;
         for (Horario horario : horarios) {
             LocalDate fecha = Dia.de(horario.getDia()).siguienteDesde(hoy);
-            for (int semana = 0; semana < 6; semana++, fecha = fecha.plusWeeks(1)) {
+            for (int semana = 0; semana < SEMANAS_PROXIMA; semana++, fecha = fecha.plusWeeks(1)) {
                 if (fecha.equals(hoy) && !ahora.isBefore(reloj.en(fecha, horario.getHoraFin()))) continue;
                 Ocurrencia ocurrencia = new Ocurrencia(horario, fecha, registradas.get(clave(horario, fecha)));
                 if (!ocurrencia.cuenta()) continue;

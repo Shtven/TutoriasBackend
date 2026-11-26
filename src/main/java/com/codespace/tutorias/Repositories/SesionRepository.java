@@ -17,6 +17,12 @@ public interface SesionRepository extends JpaRepository<Sesion, Integer> {
 
     List<Sesion> findByHorario_Tutoria_IdTutoriaOrderByFechaAscHoraInicioAsc(int idTutoria);
 
+    /** [idTutoria, cierre más reciente] de sesiones COMPLETADA, para varias tutorías a la vez. */
+    @Query("SELECT s.horario.tutoria.idTutoria, MAX(s.fechaListaCerrada) FROM Sesion s " +
+            "WHERE s.horario.tutoria.idTutoria IN :ids AND s.fechaCancelada IS NULL " +
+            "AND s.fechaListaCerrada IS NOT NULL GROUP BY s.horario.tutoria.idTutoria")
+    List<Object[]> ultimoCierrePorTutoria(Collection<Integer> ids);
+
     @Query("SELECT COUNT(s) > 0 FROM Sesion s WHERE s.horario.tutoria.idTutoria = :idTutoria " +
             "AND s.fechaListaAbierta IS NOT NULL AND s.fechaListaCerrada IS NULL")
     boolean existeListaAbierta(int idTutoria);

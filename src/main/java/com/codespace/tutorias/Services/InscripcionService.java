@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -111,11 +112,17 @@ public class InscripcionService {
         Set<Integer> vistas = new HashSet<>();
         AgendaService.Ocurrencia masProxima = null;
 
+        // Todo por adelantado: sin consultas dentro del ciclo.
+        Map<Integer, Tutoria> tutorias = tutoriasDe(todas);
+        Map<Integer, Long> ocupados = agenda.ocupados(tutorias.keySet());
+        Map<Integer, OffsetDateTime> ultimoCierre = ultimoCierre(tutorias.keySet());
+        Map<Integer, AgendaService.Ocurrencia> proximas = agenda.proximas(activas(tutorias.values()));
+
         for (Inscripcion inscripcion : todas) {
             Tutoria tutoria = inscripcion.getTutoria();
             if (!vistas.add(tutoria.getIdTutoria())) continue; // solo la más reciente por tutoría
             long inasistencias = faltas.getOrDefault(inscripcion.getIdInscripcion(), 0L);
-            TutoriaResumenResponsive resumen = mapping.toResumen(tutoria, agenda.ocupados(tutoria.getIdTutoria()), false);
+            TutoriaResumenResponsive resumen = mapping.toResumen(tutoria, ocupados.getOrDefault(tutoria.getIdTutoria(), 0L), false);
 
             boolean activa = EstadosInscripcion.ACTIVA.equals(inscripcion.getEstado())
                     && EstadosTutoria.ACTIVA.equals(tutoria.getEstado());
@@ -124,8 +131,8 @@ public class InscripcionService {
                 continue;
             }
 
-            boolean nueva = !tuvoSesionCompletada(inscripcion);
-            Optional<AgendaService.Ocurrencia> proxima = agenda.proxima(AgendaService.activos(tutoria));
+            boolean nueva = esNueva(inscripcion, ultimoCierre.get(tutoria.getIdTutoria()));
+            Optional<AgendaService.Ocurrencia> proxima = Optional.ofNullable(proximas.get(tutoria.getIdTutoria()));
             ProximaSesionResponsive proximaDTO = proxima.map(o -> new ProximaSesionResponsive(
                     null, null, null, o.fecha(), o.horario().getDia(), o.horario().getHoraInicio(),
                     o.horario().getHoraFin(), null, null, null, null, nueva)).orElse(null);
@@ -239,12 +246,28 @@ public class InscripcionService {
                 Reloj.enZona(inscripcion.getFechaInscripcion()), Reloj.enZona(inscripcion.getFechaBaja()), nueva);
     }
 
+    private static Map<Integer, Tutoria> tutoriasDe(List<Inscripcion> inscripciones) {
+        Map<Integer, Tutoria> resultado = new LinkedHashMap<>();
+        inscripciones.forEach(i -> resultado.putIfAbsent(i.getTutoria().getIdTutoria(), i.getTutoria()));
+        return resultado;
+    }
+
+    private static List<Tutoria> activas(Collection<Tutoria> tutorias) {
+        return tutorias.stream().filter(t -> EstadosTutoria.ACTIVA.equals(t.getEstado())).toList();
+    }
+
     /** "NUEVA": aún no hay sesiones completadas desde que se inscribió. */
-    private boolean tuvoSesionCompletada(Inscripcion inscripcion) {
-        return sesionRepository.findByHorario_Tutoria_IdTutoriaOrderByFechaAscHoraInicioAsc(
-                        inscripcion.getTutoria().getIdTutoria()).stream()
-                .anyMatch(s -> EstadosSesion.COMPLETADA.equals(s.estado())
-                        && s.getFechaListaCerrada().isAfter(inscripcion.getFechaInscripcion()));
+    private static boolean esNueva(Inscripcion inscripcion, OffsetDateTime ultimoCierre) {
+        return ultimoCierre == null || !ultimoCierre.isAfter(inscripcion.getFechaInscripcion());
+    }
+
+    private Map<Integer, OffsetDateTime> ultimoCierre(Collection<Integer> idsTutoria) {
+        Map<Integer, OffsetDateTime> resultado = new HashMap<>();
+        if (idsTutoria.isEmpty()) return resultado;
+        for (Object[] fila : sesionRepository.ultimoCierrePorTutoria(idsTutoria)) {
+            resultado.put((Integer) fila[0], (OffsetDateTime) fila[1]);
+        }
+        return resultado;
     }
 
     private ProximaSesionResponsive proximaConDetalle(AgendaService.Ocurrencia o) {

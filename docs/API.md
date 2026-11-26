@@ -155,6 +155,7 @@ El JWT lleva `sub` = matrícula, `rol`, `tipo: "SESION"` y `exp` ([AUTENTICACION
 |---|---|---|
 | `401` | `Usuario o contraseña incorrectos.` | No existe la cuenta, la contraseña no coincide o la cuenta aún no tiene contraseña (pre-registro). Es el mismo mensaje en todos los casos. |
 | `429` | `Demasiados intentos fallidos. Intenta de nuevo en N minutos.` | 5 fallos de la misma cuenta (o 30 de la misma IP) en 15 minutos. Se bloquea aunque la contraseña sea correcta. |
+| `503` | `Hay muchas personas entrando a la vez. Intenta de nuevo en unos segundos.` | No hubo turno para comprobar la contraseña en 45 s. No cuenta como intento fallido. |
 | `400` | `data.matricula`: `Escribe tu matrícula o correo.` | No llegó ningún identificador. |
 | `400` | `data.pwd`: `La contraseña es obligatoria.` | — |
 
