@@ -90,6 +90,7 @@ Error de validación (`@Valid`) → `400` con `data` = mapa `campo → mensaje`.
 | `405 Method Not Allowed` | Método HTTP no soportado en la ruta. |
 | `429 Too Many Requests` | `POST /auth/signin` bloqueado por intentos fallidos. |
 | `500 Internal Server Error` | Error inesperado. |
+| `503 Service Unavailable` | `POST /auth/signin`: demasiados logins a la vez. |
 
 Todos los errores, incluidos 401, 403 y 404, usan la envoltura `ApiResponse`.
 

@@ -58,6 +58,11 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 
+    @ExceptionHandler(ServicioOcupadoException.class)
+    public ResponseEntity<ApiResponse<Void>> handleServicioOcupado(ServicioOcupadoException ex) {
+        return error(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return error(HttpStatus.FORBIDDEN, "No tienes permiso para esta acción.");

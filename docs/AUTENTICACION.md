@@ -136,7 +136,8 @@ Después de validar la contraseña, el backend emite su propio JWT (HS256):
 |---|---|
 | `API_KEY` | Firma del JWT (mínimo 32 caracteres). |
 | `API_JWT_EXPIRATION` | Vigencia del JWT en ms. |
-| `auth.intentos.max-por-cuenta` / `max-por-ip` / `ventana-minutos` | Límite de intentos (5 / 30 / 15). |
+| `auth.intentos.max-por-cuenta` / `max-por-ip` / `ventana-minutos` | Límite de intentos (5 / 30 / 15). Spring también los lee del entorno, p. ej. `AUTH_INTENTOS_MAX_POR_IP=200` para un evento donde todos comparten la red. |
+| `AUTH_BCRYPT_CONCURRENCIA` / `auth.bcrypt.espera-segundos` | Contraseñas que se comprueban a la vez en el signin (2) y espera máxima por un turno (45 s, menos que los 60 s del front). |
 | `auth.local.dominios` | Dominios de correo aceptados en el signup (`estudiantes.uv.mx,gmail.com`). Vacío = cualquiera. |
 | `AUTH_DEV_HABILITADO` | `true` solo en pruebas: habilita `POST /auth/dev` (§ 10). Por defecto `false`. |
 
